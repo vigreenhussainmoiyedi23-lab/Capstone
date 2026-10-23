@@ -1,0 +1,36 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: mern-app
+
+# ── Build ──────────────────────────────────────────
+build:
+  local:
+    push: false        # use local images, don't push to registry
+  artifacts:
+
+    - image: sandbox
+      context: sandbox/server      # build context = ./core folder
+      docker:
+        dockerfile: dockerfile.dev
+      sync:
+        manual:             # paths are relative to ./core context
+          - src: '**/*.js'     # NOT 'core/**/*.js' ← that would fail
+            dest: /app
+          - src: '**/*.json'
+            dest: /app
+
+
+# ── Manifests ──────────────────────────────────────
+manifests:
+  rawYaml:
+    - k8s/sandbox-deployment.yml
+    - k8s/sandbox-service.yml
+    - k8s/ingress.yml
+
+# ── Port Forwarding ────────────────────────────────
+portForward:
+  - resourceType: service
+    resourceName: sandbox-service
+    port: 80
+    localPort: 3000
