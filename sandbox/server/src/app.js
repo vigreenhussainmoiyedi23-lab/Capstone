@@ -23,7 +23,7 @@ app.post("/api/sandbox/start", async (req, res) => {
         });
     } catch (error) {
         console.error("Error starting sandbox:", error);
-        res.status(500).json({ status: "error", message: "Failed to start sandbox" });
+        res.status(500).json({ status: "error", message: "Failed to start sandbox" ,error});
     }
 });
 

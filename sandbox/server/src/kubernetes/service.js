@@ -14,7 +14,7 @@ export const createService = async (sandboxId) => {
                 app: "sandbox",
                 sandboxId: sandboxId,
             },
-            ports: [
+            ports: [ 
                 {
                     name: "http",
                     port: 80,

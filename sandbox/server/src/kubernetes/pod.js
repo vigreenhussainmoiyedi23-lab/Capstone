@@ -19,7 +19,7 @@ export async function createPod(sandboxId) {
                     ports: [
                         {
                             containerPort: 5173,
-                            protocol: "http"
+                            protocol: "TCP"
                         }
                     ],
                     resources: {
