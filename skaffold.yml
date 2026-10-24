@@ -8,17 +8,26 @@ build:
   local:
     push: false        # use local images, don't push to registry
   artifacts:
-
     - image: sandbox
-      context: sandbox/server      # build context = ./core folder
+      context: sandbox/server      
       docker:
         dockerfile: dockerfile.dev
       sync:
-        manual:             # paths are relative to ./core context
-          - src: '**/*.js'     # NOT 'core/**/*.js' ← that would fail
+        manual:            
+          - src: '**/*.js'    
             dest: /app
           - src: '**/*.json'
             dest: /app
+    - image : router
+      context: sandbox/router
+      docker:
+        dockerfile: dockerfile.dev
+      sync:
+        manual:
+          - src: '**/*.js'
+            dest: /app
+          - src: '**/*.json'
+            dest: /app        
 
 
 # ── Manifests ──────────────────────────────────────
@@ -27,6 +36,8 @@ manifests:
     - k8s/sandbox-deployment.yml
     - k8s/sandbox-service.yml
     - k8s/ingress.yml
+    - k8s/router-deployment.yml
+    - k8s/router-service.yml
 
 # ── Port Forwarding ────────────────────────────────
 portForward:
