@@ -5,6 +5,19 @@ const app = express();
 app.use(morgan("combined"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const proxies = {};
+function getProxy(sandboxId) {
+    if (!proxies[sandboxId]) {
+        proxies[sandboxId] = createProxyMiddleware({
+            target: `http://sandbox-service-${sandboxId}`,
+            changeOrigin: true,
+            ws: true
+        });
+    }
+    return proxies[sandboxId];
+}
+
 app.get("/api/status/healthz", (req, res) => {
     res.status(200).json({ status: "ok" });
 });
@@ -14,12 +27,8 @@ app.get("/api/status/readyz", (req, res) => {
 app.use((req, res, next) => {
     const host = req.headers.host;
     const sandboxId = host.split(".")[0];
-    const target = `http://sandbox-service-${sandboxId}`;
-    return createProxyMiddleware({
-        target,
-        changeOrigin: true,
-        ws: true
-    })(req, res, next);
+    const proxy = getProxy(sandboxId);
+    return proxy(req, res, next);
 });
 
 export default app;
