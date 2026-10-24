@@ -7,6 +7,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const proxies = {};
+const agentProxies = {};
+function getAgentProxy(sandboxId) {
+    if (!agentProxies[sandboxId]) {
+        agentProxies[sandboxId] = createProxyMiddleware({
+            target: `http://sandbox-service-${sandboxId}:3000`,
+            changeOrigin: true,
+            ws: true
+        });
+    }
+    return agentProxies[sandboxId];
+}
+
 function getProxy(sandboxId) {
     if (!proxies[sandboxId]) {
         proxies[sandboxId] = createProxyMiddleware({
@@ -27,8 +39,12 @@ app.get("/api/status/readyz", (req, res) => {
 app.use((req, res, next) => {
     const host = req.headers.host;
     const sandboxId = host.split(".")[0];
-    const proxy = getProxy(sandboxId);
-    return proxy(req, res, next);
+    if (host.split(".")[1] === "agent") {
+        return getAgentProxy(sandboxId)(req, res, next);
+    }
+    else if (host.split(".")[1] === "preview") {
+        return getProxy(sandboxId)(req, res, next);
+    }
 });
 
 export default app;
