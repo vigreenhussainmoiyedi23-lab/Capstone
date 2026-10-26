@@ -28,6 +28,27 @@ build:
             dest: /app
           - src: '**/*.json'
             dest: /app        
+    - image: agent
+      context: sandbox/agent
+      docker:
+        dockerfile: dockerfile
+      sync:
+        manual:
+          - src: '**/*.js'
+            dest: /app
+          - src: '**/*.json'
+            dest: /app 
+
+    - image: template
+      context: sandbox/template
+      docker:
+        dockerfile: dockerfile
+      sync:
+        manual:
+          - src: '**/*.js'
+            dest: /app
+          - src: '**/*.json'
+            dest: /app 
 
 
 # ── Manifests ──────────────────────────────────────

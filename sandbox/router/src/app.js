@@ -3,8 +3,6 @@ import morgan from "morgan";
 import { createProxyMiddleware } from "http-proxy-middleware";
 const app = express();
 app.use(morgan("combined"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 const proxies = {};
 const agentProxies = {};
