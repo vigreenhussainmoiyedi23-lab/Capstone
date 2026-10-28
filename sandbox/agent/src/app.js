@@ -21,33 +21,46 @@ app.get("/api/status/readyz", (req, res) => {
  * @description List all files in the /workspace directory. exclude node_modules and .git directories. and also show the files like src/app.js or src/controller/payment.controoler.js making sure all the files are listed
  * @returns { files: string[] } - A JSON object containing an array of filenames.
  */
-app.get("/list-files", async (req, res) => {
 
-    const listFiles = async (dir) => {
-        const files = await fs.promises.readdir(dir)
-        const fileList = []
-        for (const file of files) {
-            const filePath = path.join(dir, file)
-            const stat = await fs.promises.stat(filePath)
-            if (stat.isDirectory()) {
-                if (!["node_modules", ".git"].includes(file)) {
-                    const nestedFiles = await listFiles(filePath)
-                    fileList.push(...nestedFiles)
-                }
+app.get("/list-files", async (req, res) => {
+    const workspacePath = "/workspace";
+
+    async function listFiles(dir) {
+        const entries = await fs.promises.readdir(dir, {
+            withFileTypes: true
+        });
+
+        const files = [];
+
+        
+        for (const entry of entries) {
+            if (["node_modules", ".git"].includes(entry.name)) continue;
+
+            const fullPath = path.join(dir, entry.name);
+
+            if (entry.isDirectory()) {
+                files.push(...await listFiles(fullPath));
             } else {
-                fileList.push(filePath.replace(/\\/g, "/"))
+                files.push(
+                    path.relative(workspacePath, fullPath).replace(/\\/g, "/")
+                );
             }
         }
-        return fileList
+
+        return files;
     }
 
     try {
-        const files = await listFiles(directoryPath)
-        res.status(200).json({ files })
+        const files = await listFiles(workspacePath);
+        return res.status(200).json({ files });
     } catch (err) {
-        res.status(500).json({ error: "Unable to scan directory" })
-    }
-})
+        console.error("Error listing files:", err);
+        return res.status(500).json({
+            error: "Unable to scan workspace"
+        });
+    } 
+});
+
 /**
  * Read the contents of all files in the specified directory.
  */
@@ -80,26 +93,70 @@ app.get("/read-files", async (req, res) => {
  *  - An array of objects where each object has a single key-value pair representing a filename and its new content.
  * @returns { status: string, updatedFiles: string[] } - A response indicating success and listing the updated files.
  */
+
 app.patch("/update-files", async (req, res) => {
-    const filesToUpdate = req.body.files
-    if (!filesToUpdate || !Array.isArray(filesToUpdate) || filesToUpdate.length === 0) {
-        return res.status(400).json({ error: "No files specified for update" })
+    const filesToUpdate = req.body.files;
+
+    if (!Array.isArray(filesToUpdate) || filesToUpdate.length === 0) {
+        return res.status(400).json({
+            error: "No files specified for update"
+        });
     }
 
-    const updatedFiles = []
-    const results = await Promise.all(filesToUpdate.map(async (fileObj) => {
-        const [filename, content] = Object.entries(fileObj)[0]
-        const filePath = path.join(directoryPath, filename)
-        try {
-            await fs.promises.writeFile(filePath, content, "utf-8")
-            updatedFiles.push(filename)
-            return { [filename]: "Updated successfully" }
-        } catch (err) {
-            return res.status(500).json({ error: `Error updating file ${filename}: ${err.message}` })
-        }
-    }))
-    res.status(200).json({ status: "success", message: "Files updated successfully", results })
-})
+    const results = await Promise.all(
+        filesToUpdate.map(async (fileObj) => {
+            try {
+                const entries = Object.entries(fileObj ?? {});
+
+                if (entries.length !== 1) {
+                    throw new Error("Each file object must have one entry");
+                }
+
+                const [filename, content] = entries[0];
+
+                if (typeof content !== "string") {
+                    throw new Error("File content must be a string");
+                }
+
+                // Treat /src/App.jsx as relative to /workspace.
+                const relativePath = filename.replace(/^[/\\]+/, "");
+                const filePath = path.resolve(directoryPath, relativePath);
+
+                // Prevent writing outside /workspace.
+                if (
+                    filePath !== directoryPath &&
+                    !filePath.startsWith(directoryPath + path.sep)
+                ) {
+                    throw new Error("Invalid file path");
+                }
+
+                await fs.promises.writeFile(filePath, content, "utf-8");
+
+                return {
+                    filename,
+                    status: "success",
+                    message: "Updated successfully"
+                };
+            } catch (err) {
+                return {
+                    filename: Object.keys(fileObj ?? {})[0] ?? "unknown",
+                    status: "error",
+                    message: err.message
+                };
+            }
+        })
+    );
+
+    const hasErrors = results.some(
+        (result) => result.status === "error"
+    );
+
+    return res.status(hasErrors ? 400 : 200).json({
+        status: hasErrors ? "partial_failure" : "success",
+        results
+    });
+});
+
 /**
  * @route POST /create-files
  * @description Create new files in the /workspace directory with specified content. 
@@ -117,11 +174,15 @@ app.post("/create-files", async (req, res) => {
         const [filename, content] = Object.entries(fileObj)[0]
         const filePath = path.join(directoryPath, filename)
         try {
-            await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
-            await fs.promises.writeFile(filePath, content, "utf-8")
-            return { [filename]: "Created successfully" }
+            await fs.promises.mkdir(path.dirname(filePath), {
+                recursive: true
+            });
+
+            await fs.promises.writeFile(filePath, content, "utf-8");
+
+            return { [filename]: "Created successfully" };
         } catch (err) {
-            return { [filename]: `Error creating file: ${err.message}` }
+            return { [filename]: `Error creating file: ${err.message}` };
         }
     }))
     res.status(200).json({ status: "success", message: "Files created successfully", results })

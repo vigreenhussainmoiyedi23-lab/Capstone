@@ -5,39 +5,42 @@ metadata:
 
 # ── Build ──────────────────────────────────────────
 build:
+  tagPolicy:
+    customTemplate:
+      template: "{{.IMAGE_NAME}}:latest"
   local:
-    push: false        # use local images, don't push to registry
+    push: false
   artifacts:
     - image: sandbox
-      context: sandbox/server      
+      context: sandbox/server
       docker:
         dockerfile: dockerfile.dev
       sync:
-        manual:            
-          - src: '**/*.js'    
+        manual:
+          - src: "**/*.js"
             dest: /app
-          - src: '**/*.json'
+          - src: "**/*.json"
             dest: /app
-    - image : router
+    - image: router
       context: sandbox/router
       docker:
         dockerfile: dockerfile.dev
       sync:
         manual:
-          - src: '**/*.js'
+          - src: "**/*.js"
             dest: /app
-          - src: '**/*.json'
-            dest: /app        
+          - src: "**/*.json"
+            dest: /app
     - image: agent
       context: sandbox/agent
       docker:
         dockerfile: dockerfile
       sync:
         manual:
-          - src: '**/*.js'
+          - src: "**/*.js"
             dest: /app
-          - src: '**/*.json'
-            dest: /app 
+          - src: "**/*.json"
+            dest: /app
 
     - image: template
       context: sandbox/template
@@ -45,11 +48,10 @@ build:
         dockerfile: dockerfile
       sync:
         manual:
-          - src: '**/*.js'
+          - src: "**/*.js"
             dest: /app
-          - src: '**/*.json'
-            dest: /app 
-
+          - src: "**/*.json"
+            dest: /app
 
 # ── Manifests ──────────────────────────────────────
 manifests:
