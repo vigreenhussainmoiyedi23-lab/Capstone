@@ -5,7 +5,6 @@ metadata:
   labels:
     name: router-deployment
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: router
@@ -17,7 +16,7 @@ spec:
       containers:
         - image: router:latest
           imagePullPolicy: IfNotPresent
-          name: my-name
+          name: router-container
           resources:
             requests:
               cpu: "250m"
