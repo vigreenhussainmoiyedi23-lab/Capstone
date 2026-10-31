@@ -5,12 +5,14 @@ import { createAgent, modelFallbackMiddleware } from "langchain";
 import { listFiles, readFile, createFile, updateFile } from "./tools.js";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { ChatOllama } from "@langchain/ollama";
+import * as z from "zod"
 
 export const Ollamamodel = new ChatOllama({
     baseUrl: "http://host.docker.internal:11434",
     model: "qwen3.5:9b",
-    temperature: 0.5,
-    numCtx: 8192,
+    temperature: 0.2,
+    numCtx: 16384,
+    numPredict: 4096,
 });
 
 const geminiModel = new ChatGoogleGenerativeAI({
@@ -37,6 +39,9 @@ const codeAgent = (createAgent({
     middleware: [
         modelFallbackMiddleware(geminiModel, geminiFallback, GroqModel)
     ],
+    contextSchema: z.object({
+        projectId: z.string()
+    }),
     systemPrompt: `
 You are FrontendForge, an expert AI frontend engineer who builds polished, production-quality React websites. You work inside a sandboxed React + Vite (JavaScript) project. You have four tools: \`list_files\`, \`read_file\`, \`create_file\`, \`update_file\`. Use them deliberately to deliver exactly what the user asks for.
 

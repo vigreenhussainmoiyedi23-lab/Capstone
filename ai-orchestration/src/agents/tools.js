@@ -9,21 +9,19 @@ export function createSandboxClient(sandboxId) {
 }
 
 export const listFiles = tool(
-    async ({ }) => {
+    async ({ }, config) => {
+        console.log("LATEST TOOLS BEING USED")
         try {
-            console.log("using listing tool");
-            const sandboxClient = createSandboxClient(
-                "01a187e8-5cbc-703b-8b59-fe5c60be8790"
-            );
+            const writer = config.writer
+            writer("listing files in the workspace...")
+            const sandboxClient = createSandboxClient(config.context.projectId);
 
             const response = await sandboxClient.get("/list-files");
-            console.log("response From APi list files : -", response.data)
             const files = response.data.files.map((file) =>
                 file.replace(/^[/\\]+/, "").replace(/^workspace[/\\]?/, "")
             );
 
-            console.log("response", files);
-
+            writer(" files listed successfully")
             return JSON.stringify(files);
         } catch (error) {
             console.error("error", error);
@@ -37,17 +35,19 @@ export const listFiles = tool(
 )
 
 export const readFile = tool(
-    async ({ files }) => {
-        console.log("using reading file tool", files);
-        const sandboxClient = createSandboxClient(
-            "01a187e8-5cbc-703b-8b59-fe5c60be8790"
-        );
+    async ({ files }, config) => {
+        console.log("LATEST TOOLS BEING USED")
+
+        const writer = config.writer
+        writer("reading files in the workspace..." + files)
+        const sandboxClient = createSandboxClient(config.context.projectId);
+
         const response = await sandboxClient.get("/read-files", {
             params: {
                 files: files.join(","),
             },
         });
-        console.log("response From APi reading file : -", response.data)
+        writer(" files read successfully")
         return JSON.stringify(response.data);
     },
     {
@@ -61,20 +61,20 @@ export const readFile = tool(
 );
 
 export const createFile = tool(
-    async ({ filePath, content }) => {
-        console.log("CONTENT:", JSON.stringify(content));
-        console.log("CONTENT LENGTH:", content.length);
+    async ({ filePath, content }, config) => {
+        console.log("LATEST TOOLS BEING USED")
+
+        const writer = config.writer
+        writer("creating files in the workspace..." + filePath)
         const files = [
             {
                 [filePath]: content
             }
         ]
-        const sandboxClient = createSandboxClient(
-            "01a187e8-5cbc-703b-8b59-fe5c60be8790"
-        );
-        console.log("using creating file tool", files)
+        const sandboxClient = createSandboxClient(config.context.projectId);
+
         const response = await sandboxClient.post(`/create-files`, { files });
-        console.log("response From APi creating file : -", response.data.results)
+        writer(" files created successfully")
         return JSON.stringify(response.data.results);
     }, {
     name: "create_file",
@@ -90,21 +90,18 @@ export const createFile = tool(
 )
 
 export const updateFile = tool(
-    async ({ filePath, content }) => {
+    async ({ filePath, content }, config) => {
+        console.log("LATEST TOOLS BEING USED")
+
         try {
-            console.log("=============")
-            console.log("using update file tool ", filePath, content)
-            console.log("=============")
-            const sandboxClient = createSandboxClient(
-                "01a187e8-5cbc-703b-8b59-fe5c60be8790"
-            );
+            const writer = config.writer
+            writer("updating files in the workspace..." + filePath)
+            const sandboxClient = createSandboxClient(config.context.projectId);
+
             const response = await sandboxClient.patch("/update-files", {
                 files: [{ [filePath]: content }],
             });
-
-            console.log("=============")
-            console.log("response from update file api ", response)
-            console.log("=============")
+            writer(" files updated successfully")
             return JSON.stringify(response.data.results);
         } catch (error) {
             console.log("error occured while updating the file :" + filePath, error);

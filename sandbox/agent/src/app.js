@@ -2,8 +2,14 @@ import express from "express"
 import morgan from "morgan"
 import fs from "fs"
 import path from "path"
+import { Server } from "socket.io";
+import http from "http";
+import pty from "node-pty"
 
 const app = express()
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"] } });
+
 app.use(morgan("combined"))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -32,7 +38,7 @@ app.get("/list-files", async (req, res) => {
 
         const files = [];
 
-        
+
         for (const entry of entries) {
             if (["node_modules", ".git"].includes(entry.name)) continue;
 
@@ -58,7 +64,7 @@ app.get("/list-files", async (req, res) => {
         return res.status(500).json({
             error: "Unable to scan workspace"
         });
-    } 
+    }
 });
 
 /**
@@ -207,5 +213,39 @@ app.post("/create-folder", async (req, res) => {
         res.status(500).json({ error: `Error creating folder: ${err.message}` })
     }
 })
+const shell = "bash"
+const ptyProcess = pty.spawn(shell, [], {
+    name: "xterm-color",
+    cols: 80,
+    rows: 30,
+    cwd: "/workspace",
+    env: process.env
+})
 
-export default app
+ptyProcess.onData((data) => {
+    io.emit("terminal-output", data)
+})
+ptyProcess.onExit(({ exitCode, signal }) => {
+    console.log("EXITED", { exitCode, signal })
+})
+
+io.on("connection", (socket) => {
+    console.log("A user connected");
+
+    socket.on("terminal-input", (data) => {
+        ptyProcess.write(data)
+    })
+    socket.on("terminal-resize", (data) => {
+        ptyProcess.resize(data.cols, data.rows)
+    })
+
+
+
+
+    socket.on("disconnect", () => {
+        console.log("A user disconnected");
+    });
+});
+
+
+export default httpServer
