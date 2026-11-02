@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
-import ChatPanel from '../features/ai/components/ChatPanel'
-import RightPanel from './shared/components/RightPanel'
-import './index.css'
+import ChatPanel from '../../features/ai/components/ChatPanel'
 
+import RightPanel from "../../features/sandbox/components/RightPanel";
 /**
  * App — Root layout for Forge AI Studio
  *
@@ -22,7 +21,7 @@ const MIN_CHAT_WIDTH  = 240   // px
 const MAX_CHAT_WIDTH  = 480   // px
 const DEFAULT_CHAT_PX = 320   // px (~20% at 1440px)
 
-const App = () => {
+const ChatboxPreview = () => {
   const [theme, setTheme]       = useState('dark')
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_PX)
   const [isDragging, setIsDragging] = useState(false)
@@ -149,4 +148,4 @@ const App = () => {
   )
 }
 
-export default App
+export default ChatboxPreview
