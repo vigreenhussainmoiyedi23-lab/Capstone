@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import PreviewPanel from './PreviewPanel'
-import CodePanel from './CodePanel'
+import PreviewPanel from '../features/sandbox/components/PreviewPanel'
+import CodePanel from '../features/ai/components/CodePanel'
 import TerminalPanel from './TerminalPanel'
 
 const TABS = [

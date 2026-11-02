@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import Navbar from './components/Navbar'
-import ChatPanel from './components/ChatPanel'
-import RightPanel from './components/RightPanel'
+import Navbar from '../components/Navbar'
+import ChatPanel from '../features/ai/components/ChatPanel'
+import RightPanel from './shared/components/RightPanel'
 import './index.css'
 
 /**
