@@ -8,12 +8,11 @@ import api from "../../../app/axios";
  * @param {string} [options.projectId] - Optional project or sandbox identifier.
  * @param {Function} options.onEvent - Callback called with { event: string, data: any }.
  * @param {AbortSignal} [options.signal] - Optional abort signal to cancel streaming.
- * @param {string} [options.url] - Optional custom URL override.
  */
-export const invokeAI = async ({ prompt, projectId, onEvent, signal, url }) => {
-    const targetUrl = url || api.getUri({ url: "/invoke-ai" });
+export const invokeAI = async ({ prompt, projectId, onEvent, signal }) => {
 
     let response;
+    const targetUrl = "http://localhost/api/ai/invoke"
     try {
         response = await fetch(targetUrl, {
             method: "POST",

@@ -1,300 +1,532 @@
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useSelector } from 'react-redux'
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sparkles,
+  Send,
+  Square,
+  Copy,
+  Check,
+  RotateCcw,
+  AlertCircle,
+  Plus,
+  Bot,
+  User,
+} from "lucide-react";
+import { useAI } from "../hooks/useAI";
+import ThinkingProcess from "./ThinkingProcess";
+import MarkdownRenderer from "./MarkdownRenderer";
 
-/* ── Dummy AI conversation data ── */
-const INITIAL_MESSAGES = [
-  {
-    id: 1,
-    role: 'assistant',
-    content: "Welcome to **Forge**. I'm your AI co-pilot for building exceptional websites.\n\nDescribe what you want to build and I'll generate it for you in real time.",
-    timestamp: '09:41',
-  },
-  {
-    id: 2,
-    role: 'user',
-    content: 'Build me a luxury portfolio website with a dark hero section, animated text, and a gold accent color scheme.',
-    timestamp: '09:42',
-  },
-  {
-    id: 3,
-    role: 'assistant',
-    content: "Perfect — a dark luxury portfolio. I've generated:\n\n• Hero section with animated gradient text\n• Gold accent color system (`#C9A84C`)\n• Smooth scroll sections\n• Mobile-responsive layout\n\nCheck the **Preview** tab to see it live.",
-    timestamp: '09:43',
-  },
-]
-
-/* ── Simple markdown bold renderer ── */
-const renderContent = (text) => {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '11px',
-        background: 'var(--gold-glow)',
-        color: 'var(--gold)',
-        padding: '1px 5px',
-        borderRadius: '3px',
-        border: '1px solid var(--border-subtle)',
-      }}>{part.slice(1, -1)}</code>
-    }
-    return part.split('\n').map((line, j, arr) => (
-      <span key={`${i}-${j}`}>
-        {line}
-        {j < arr.length - 1 && <br />}
-      </span>
-    ))
-  })
-}
-
-/* ── Typing indicator ── */
-const TypingIndicator = () => (
-  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '4px 0' }}>
-    {[0, 1, 2].map(i => (
-      <motion.div
-        key={i}
-        style={{
-          width: '5px',
-          height: '5px',
-          borderRadius: '50%',
-          background: 'var(--gold)',
-        }}
-        animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
-        transition={{ duration: 1, delay: i * 0.2, repeat: Infinity, ease: 'easeInOut' }}
-      />
-    ))}
-  </div>
-)
+/* ── Quick prompt suggestions ── */
+const SUGGESTION_CHIPS = [
+  "Build FlowBoard Kanban",
+  "Dark luxury portfolio",
+  "Add Pomodoro timer",
+  "Mobile responsive layout",
+];
 
 /**
- * ChatPanel — Left AI chat sidebar
+ * Animated typing shimmer shown before final content starts arriving
  */
-const ChatPanel = () => {
-  const {messages:Messages} = useSelector((state)=>state.ai.messages)
-  const [messages, setMessages] = useState(Messages)
-  const [input, setInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const bottomRef = useRef(null)
-  const textareaRef = useRef(null)
+const GeneratingIndicator = () => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "4px 0",
+      color: "var(--text-muted)",
+      fontSize: "11.5px",
+      fontStyle: "italic",
+    }}
+  >
+    <span>Generating response</span>
+    <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          style={{
+            width: "4px",
+            height: "4px",
+            borderRadius: "50%",
+            background: "var(--gold)",
+          }}
+          animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
+          transition={{
+            duration: 0.9,
+            delay: i * 0.18,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * ChatPanel — AI Assistant Sidebar with real backend SSE streaming
+ */
+const ChatPanel = ({ projectId }) => {
+  const {
+    messages = [],
+    isStreaming,
+    invokeAI,
+    stopStreaming,
+    resetChat,
+  } = useAI();
+  const [input, setInput] = useState("");
+  const [copiedId, setCopiedId] = useState(null);
+  const bottomRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  const safeMessages = Array.isArray(messages) ? messages : [];
+
+  // Auto-scroll when messages or updates change
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [safeMessages, isStreaming]);
 
   const handleSend = () => {
-    const text = input.trim()
-    if (!text) return
-    const now = new Date()
-    const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
+    const text = input.trim();
+    if (!text || isStreaming) return;
 
-    setMessages(prev => [...prev, { id: Date.now(), role: 'user', content: text, timestamp: time }])
-    setInput('')
-    setIsTyping(true)
+    setInput("");
+    invokeAI({ prompt: text ,projectId});
 
-    // Simulate AI response
-    setTimeout(() => {
-      setIsTyping(false)
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: "I'm processing your request and updating the preview. You can see the changes in the **Preview** tab on the right.",
-        timestamp: time,
-      }])
-    }, 1800)
-  }
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
-  }
+  };
+
+  const handleCopy = (id, content) => {
+    if (!content) return;
+    navigator.clipboard?.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleRetry = (promptText) => {
+    if (!promptText || isStreaming) return;
+    invokeAI({ prompt: promptText, projectId });
+  };
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      overflow: 'hidden',
-      background: 'var(--bg-panel)',
-      borderRight: '1px solid var(--border-default)',
-    }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+        background: "var(--bg-panel)",
+        borderRight: "1px solid var(--border-default)",
+      }}
+    >
       {/* Header */}
-      <div style={{
-        padding: '14px 16px',
-        borderBottom: '1px solid var(--border-subtle)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            background: 'var(--gold-glow)',
-            border: '1px solid var(--border-accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
+      <div
+        style={{
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--border-subtle)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
+          background: "var(--bg-panel)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "8px",
+              background: "var(--gold-glow)",
+              border: "1px solid var(--border-accent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Sparkles size={14} style={{ color: "var(--gold)" }} />
           </div>
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1 }}>AI Assistant</div>
-            <div style={{ fontSize: '10px', color: '#3d8f5e', marginTop: '2px' }}>● Online</div>
+            <div
+              style={{
+                fontSize: "12.5px",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                lineHeight: 1.2,
+              }}
+            >
+              Forge AI
+            </div>
+            <div
+              style={{
+                fontSize: "10px",
+                color: isStreaming ? "var(--gold)" : "#3d8f5e",
+                marginTop: "1px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <span
+                style={{
+                  width: "5px",
+                  height: "5px",
+                  borderRadius: "50%",
+                  background: isStreaming ? "var(--gold)" : "#3d8f5e",
+                  display: "inline-block",
+                  boxShadow: isStreaming
+                    ? "0 0 6px var(--gold)"
+                    : "0 0 6px #3d8f5e",
+                }}
+              />
+              {isStreaming ? "Working…" : "Online"}
+            </div>
           </div>
         </div>
-        <button
-          style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '6px',
-            background: 'transparent',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title="New conversation"
-          id="new-chat-btn"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <button
+            onClick={resetChat}
+            type="button"
+            style={{
+              width: "26px",
+              height: "26px",
+              borderRadius: "6px",
+              background: "transparent",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--text-primary)";
+              e.currentTarget.style.borderColor = "var(--border-accent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--text-muted)";
+              e.currentTarget.style.borderColor = "var(--border-subtle)";
+            }}
+            title="New conversation"
+            id="new-chat-btn"
+          >
+            <Plus size={13} />
+          </button>
+        </div>
       </div>
 
-      {/* Messages list */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-      }}>
+      {/* Messages Scroll Area */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+        }}
+      >
         <AnimatePresence initial={false}>
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              }}
-            >
-              {/* Role label */}
-              <div style={{
-                fontSize: '9px',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: 'var(--text-muted)',
-                marginBottom: '4px',
-                paddingLeft: msg.role === 'user' ? 0 : '4px',
-                paddingRight: msg.role === 'user' ? '4px' : 0,
-              }}>
-                {msg.role === 'user' ? 'You' : 'Forge AI'}
-              </div>
+          {safeMessages.map((msg, index) => {
+            const isUser = msg.role === "user";
+            const hasUpdates =
+              Array.isArray(msg.updates) && msg.updates.length > 0;
+            const isMessageStreaming = msg.status === "streaming";
+            const isError = msg.status === "error";
 
-              {/* Bubble */}
-              <div style={{
-                maxWidth: '90%',
-                padding: '9px 12px',
-                borderRadius: msg.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
-                background: msg.role === 'user' ? 'var(--chat-user-bg)' : 'var(--chat-ai-bg)',
-                border: `1px solid ${msg.role === 'user' ? 'var(--border-accent)' : 'var(--border-default)'}`,
-                fontSize: '12.5px',
-                lineHeight: '1.65',
-                color: 'var(--text-secondary)',
-                boxShadow: msg.role === 'user' ? '0 0 12px rgba(201, 168, 76, 0.06)' : 'none',
-              }}>
-                {renderContent(msg.content)}
-              </div>
+            // Find preceding user prompt if this message had an error (for retry)
+            const prevPrompt =
+              !isUser && index > 0 && safeMessages[index - 1]?.role === "user"
+                ? safeMessages[index - 1]?.content
+                : null;
 
-              {/* Timestamp */}
-              <div style={{
-                fontSize: '9px',
-                color: 'var(--text-muted)',
-                marginTop: '3px',
-                paddingLeft: msg.role === 'user' ? 0 : '4px',
-                paddingRight: msg.role === 'user' ? '4px' : 0,
-              }}>
-                {msg.timestamp}
-              </div>
-            </motion.div>
-          ))}
+            return (
+              <motion.div
+                key={msg.id || index}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: isUser ? "flex-end" : "flex-start",
+                  maxWidth: "100%",
+                }}
+              >
+                {/* Role Header Badge */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "9.5px",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: isUser ? "var(--gold)" : "var(--text-muted)",
+                    marginBottom: "4px",
+                    paddingLeft: isUser ? 0 : "2px",
+                    paddingRight: isUser ? "2px" : 0,
+                  }}
+                >
+                  {isUser ? (
+                    <>
+                      <span>You</span>
+                      <User size={10} />
+                    </>
+                  ) : (
+                    <>
+                      <Bot size={10} style={{ color: "var(--gold)" }} />
+                      <span>Forge AI</span>
+                    </>
+                  )}
+                </div>
 
-          {isTyping && (
-            <motion.div
-              key="typing"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '4px 12px 12px 12px',
-                background: 'var(--chat-ai-bg)',
-                border: '1px solid var(--border-default)',
-                alignSelf: 'flex-start',
-                width: 'fit-content',
-              }}
-            >
-              <TypingIndicator />
-            </motion.div>
-          )}
+                {/* Bubble */}
+                <div
+                  style={{
+                    width: isUser ? "auto" : "100%",
+                    maxWidth: isUser ? "88%" : "100%",
+                    padding: "10px 13px",
+                    borderRadius: isUser
+                      ? "12px 4px 12px 12px"
+                      : "4px 12px 12px 12px",
+                    background: isUser
+                      ? "var(--chat-user-bg)"
+                      : "var(--chat-ai-bg)",
+                    border: `1px solid ${
+                      isUser
+                        ? "var(--border-accent)"
+                        : isError
+                          ? "rgba(196, 61, 61, 0.3)"
+                          : "var(--border-default)"
+                    }`,
+                    fontSize: "12.5px",
+                    lineHeight: "1.65",
+                    color: "var(--text-primary)",
+                    boxShadow: isUser
+                      ? "0 0 12px rgba(201, 168, 76, 0.08)"
+                      : "0 2px 10px rgba(0, 0, 0, 0.1)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* 1. Assistant: What AI is thinking and doing (light text, collapsible accordion) */}
+                  {!isUser && (hasUpdates || isMessageStreaming) && (
+                    <ThinkingProcess
+                      updates={msg.updates || []}
+                      status={msg.status}
+                      duration={msg.duration}
+                      currentStep={msg.currentStep}
+                    />
+                  )}
+
+                  {/* 2. Content rendering */}
+                  {isUser ? (
+                    <div
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {msg.content}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Final Message bold & clear */}
+                      {msg.content ? (
+                        <div style={{ marginTop: hasUpdates ? "4px" : 0 }}>
+                          <MarkdownRenderer content={msg.content} />
+                        </div>
+                      ) : isMessageStreaming ? (
+                        <GeneratingIndicator />
+                      ) : null}
+
+                      {/* Error Box if request failed */}
+                      {isError && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "8px",
+                            padding: "8px 10px",
+                            marginTop: "6px",
+                            borderRadius: "6px",
+                            background: "rgba(196, 61, 61, 0.1)",
+                            border: "1px solid rgba(196, 61, 61, 0.25)",
+                            color: "#e88080",
+                            fontSize: "11.5px",
+                          }}
+                        >
+                          <AlertCircle
+                            size={14}
+                            style={{ flexShrink: 0, marginTop: "2px" }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600 }}>
+                              Connection Error
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                opacity: 0.9,
+                                marginTop: "2px",
+                              }}
+                            >
+                              {msg.error ||
+                                "Could not reach AI backend server."}
+                            </div>
+                            {prevPrompt && (
+                              <button
+                                type="button"
+                                onClick={() => handleRetry(prevPrompt)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  marginTop: "6px",
+                                  padding: "3px 8px",
+                                  borderRadius: "4px",
+                                  background: "rgba(196, 61, 61, 0.2)",
+                                  border: "1px solid rgba(196, 61, 61, 0.4)",
+                                  color: "#ffffff",
+                                  fontSize: "10.5px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <RotateCcw size={10} />
+                                Retry request
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Message Footer: Timestamp and Copy Action */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginTop: "3px",
+                    paddingLeft: isUser ? 0 : "4px",
+                    paddingRight: isUser ? "4px" : 0,
+                    fontSize: "9.5px",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  <span>{msg.timestamp}</span>
+
+                  {!isUser && msg.content && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(msg.id, msg.content)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "3px",
+                        background: "transparent",
+                        border: "none",
+                        color:
+                          copiedId === msg.id
+                            ? "var(--gold)"
+                            : "var(--text-muted)",
+                        cursor: "pointer",
+                        padding: "1px 4px",
+                        borderRadius: "3px",
+                        fontSize: "9.5px",
+                        fontFamily: "var(--font-sans)",
+                        transition: "color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (copiedId !== msg.id)
+                          e.currentTarget.style.color = "var(--text-primary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (copiedId !== msg.id)
+                          e.currentTarget.style.color = "var(--text-muted)";
+                      }}
+                      title="Copy message"
+                    >
+                      {copiedId === msg.id ? (
+                        <>
+                          <Check size={10} />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={10} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggestion chips */}
-      <div style={{
-        padding: '8px 12px 4px',
-        display: 'flex',
-        gap: '6px',
-        flexWrap: 'wrap',
-        borderTop: '1px solid var(--border-subtle)',
-        flexShrink: 0,
-      }}>
-        {['Add animations', 'Dark mode', 'Mobile layout'].map((chip) => (
+      {/* Quick Suggestion Chips */}
+      <div
+        style={{
+          padding: "8px 12px 4px",
+          display: "flex",
+          gap: "6px",
+          flexWrap: "wrap",
+          borderTop: "1px solid var(--border-subtle)",
+          flexShrink: 0,
+          background: "var(--bg-panel)",
+        }}
+      >
+        {SUGGESTION_CHIPS.map((chip) => (
           <motion.button
             key={chip}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setInput(chip)}
+            disabled={isStreaming}
             style={{
-              padding: '4px 9px',
-              borderRadius: '20px',
-              border: '1px solid var(--border-default)',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              fontSize: '10px',
+              padding: "3px 8px",
+              borderRadius: "14px",
+              border: "1px solid var(--border-default)",
+              background: "transparent",
+              color: "var(--text-muted)",
+              fontSize: "10.5px",
               fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              fontFamily: 'var(--font-sans)',
+              cursor: isStreaming ? "not-allowed" : "pointer",
+              transition: "all 0.15s ease",
+              fontFamily: "var(--font-sans)",
+              opacity: isStreaming ? 0.5 : 1,
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'var(--border-accent)'
-              e.currentTarget.style.color = 'var(--gold)'
+            onMouseEnter={(e) => {
+              if (!isStreaming) {
+                e.currentTarget.style.borderColor = "var(--border-accent)";
+                e.currentTarget.style.color = "var(--gold)";
+              }
             }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--border-default)'
-              e.currentTarget.style.color = 'var(--text-muted)'
+            onMouseLeave={(e) => {
+              if (!isStreaming) {
+                e.currentTarget.style.borderColor = "var(--border-default)";
+                e.currentTarget.style.color = "var(--text-muted)";
+              }
             }}
           >
             {chip}
@@ -302,106 +534,147 @@ const ChatPanel = () => {
         ))}
       </div>
 
-      {/* Input area */}
-      <div style={{
-        padding: '10px 12px 12px',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-default)',
-          borderRadius: '10px',
-          padding: '10px 12px',
-          transition: 'border-color 0.2s ease',
+      {/* Input Box */}
+      <div
+        style={{
+          padding: "8px 12px 12px",
+          flexShrink: 0,
+          background: "var(--bg-panel)",
         }}
-          onFocusCapture={e => {
-            e.currentTarget.style.borderColor = 'var(--border-accent)'
-            e.currentTarget.style.boxShadow = '0 0 0 1px rgba(201, 168, 76, 0.1)'
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "10px",
+            padding: "8px 10px",
+            transition: "border-color 0.2s ease, box-shadow 0.2s ease",
           }}
-          onBlurCapture={e => {
-            e.currentTarget.style.borderColor = 'var(--border-default)'
-            e.currentTarget.style.boxShadow = 'none'
+          onFocusCapture={(e) => {
+            e.currentTarget.style.borderColor = "var(--border-accent)";
+            e.currentTarget.style.boxShadow =
+              "0 0 0 1px rgba(201, 168, 76, 0.12)";
+          }}
+          onBlurCapture={(e) => {
+            e.currentTarget.style.borderColor = "var(--border-default)";
+            e.currentTarget.style.boxShadow = "none";
           }}
         >
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what to build…"
+            placeholder={
+              isStreaming
+                ? "Forge AI is generating…"
+                : "Describe what to build or update…"
+            }
             rows={2}
+            disabled={isStreaming}
             style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              resize: 'none',
-              color: 'var(--text-primary)',
-              fontSize: '12.5px',
-              lineHeight: '1.6',
-              fontFamily: 'var(--font-sans)',
-              width: '100%',
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              resize: "none",
+              color: "var(--text-primary)",
+              fontSize: "12.5px",
+              lineHeight: "1.5",
+              fontFamily: "var(--font-sans)",
+              width: "100%",
+              opacity: isStreaming ? 0.7 : 1,
             }}
             id="chat-input"
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                style={{
-                  padding: '3px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                }}
-                title="Attach file"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                </svg>
-              </button>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleSend}
-              disabled={!input.trim()}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span
               style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '8px',
-                background: input.trim() ? 'var(--gold)' : 'var(--bg-elevated)',
-                border: 'none',
-                cursor: input.trim() ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                flexShrink: 0,
+                fontSize: "9.5px",
+                color: "var(--text-muted)",
+                letterSpacing: "0.02em",
               }}
-              id="send-btn"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={input.trim() ? '#0a0e1a' : 'var(--text-muted)'} strokeWidth="2.5">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </motion.button>
+              {isStreaming ? (
+                <span style={{ color: "var(--gold)" }}>Streaming updates…</span>
+              ) : (
+                "Enter to send · Shift+Enter for new line"
+              )}
+            </span>
+
+            {isStreaming ? (
+              /* Stop button while streaming */
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={stopStreaming}
+                style={{
+                  height: "26px",
+                  padding: "0 9px",
+                  borderRadius: "6px",
+                  background: "rgba(196, 61, 61, 0.2)",
+                  border: "1px solid rgba(196, 61, 61, 0.4)",
+                  color: "#f87171",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                }}
+                title="Stop generation"
+              >
+                <Square size={10} style={{ fill: "#f87171" }} />
+                Stop
+              </motion.button>
+            ) : (
+              /* Send button */
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSend}
+                disabled={!input.trim()}
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "7px",
+                  background: input.trim()
+                    ? "var(--gold)"
+                    : "var(--bg-elevated)",
+                  border: "none",
+                  cursor: input.trim() ? "pointer" : "not-allowed",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.18s ease",
+                  flexShrink: 0,
+                }}
+                id="send-btn"
+                title="Send prompt"
+              >
+                <Send
+                  size={12}
+                  style={{
+                    color: input.trim() ? "#0a0e1a" : "var(--text-muted)",
+                    strokeWidth: 2.2,
+                  }}
+                />
+              </motion.button>
+            )}
           </div>
-        </div>
-        <div style={{
-          marginTop: '6px',
-          textAlign: 'center',
-          fontSize: '9px',
-          color: 'var(--text-muted)',
-          letterSpacing: '0.02em',
-        }}>
-          Press Enter to send · Shift+Enter for new line
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ChatPanel
+export default ChatPanel;
