@@ -11,6 +11,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "6000"
     # Sets the timeout for reading a response from the proxy server
     nginx.ingress.kubernetes.io/proxy-read-timeout: "6000"
+    nginx.ingress.kubernetes.io/session-cookie-path: "/"
 spec:
   ingressClassName: nginx
   rules:

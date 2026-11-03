@@ -8,15 +8,19 @@ import RightPanel from "../../features/sandbox/components/RightPanel";
  * App — Root layout for Forge AI Studio
  *
  * Layout:
- *   ┌─────────────────────────────────────────┐
- *   │              Navbar (52px)              │
- *   ├───────────┬─────────────────────────────┤
- *   │           │                             │
- *   │ ChatPanel │       RightPanel            │
- *   │  (~20%)   │    Preview / Code / Term    │
- *   │           │         (~80%)              │
- *   └───────────┴─────────────────────────────┘
- */
+ *   ┌────────────────────────────────────────────┐
+ *   │              Navbar (52px)                 │
+ *   ├───────────┬────────────────────────────────┤
+ *   │           │                        │ Files │
+ *   │ ChatPanel │       RightPanel       │  Panel│
+ *   │  (~15%)   │ Preview / Code         │ (~15%)|
+ *   │           │         (~70%)         │(like vs code)│
+ *   │           │                        │       │
+     │           │─────────────────────── │       │
+     │           │terminal (height ~15%)  │       │
+     └───────────┴────────────────────────┴───────┘
+
+*/  
 const MIN_CHAT_WIDTH  = 240   // px
 const MAX_CHAT_WIDTH  = 480   // px
 const DEFAULT_CHAT_PX = 320   // px (~20% at 1440px)

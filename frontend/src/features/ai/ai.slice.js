@@ -3,13 +3,32 @@ import { createSlice } from "@reduxjs/toolkit";
 const aiSlice = createSlice({
     name: "ai",
     initialState: {
-        
+        messages: [],
     },
     reducers: {
-        // Define your reducers here
+        addMessage: (state, action) => {
+            state.messages.push(action.payload);
+        },
+
+        updateMessage: (state, action) => {
+            const { id, updates } = action.payload;
+            const message = state.messages.find((msg) => msg.id === id);
+
+            if (message) {
+                Object.assign(message, updates);
+            }
+        },
+
+        clearMessages: (state) => {
+            state.messages = [];
+        },
     },
 });
 
-export const { } = aiSlice.actions;
+export const {
+    addMessage,
+    updateMessage,
+    clearMessages,
+} = aiSlice.actions;
 
-export default aiSlice.reducer;
+export const AIReducer = aiSlice.reducer;
