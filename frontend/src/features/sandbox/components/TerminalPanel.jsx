@@ -1,74 +1,63 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { useSelector } from 'react-redux'
+import { io } from 'socket.io-client'
 
-/* ── Dummy terminal session script ── */
-const TERMINAL_SESSION = [
-  { delay: 300,  text: '\x1b[90m# Forge AI — Terminal\x1b[0m' },
-  { delay: 600,  text: '\x1b[38;5;220m❯\x1b[0m npm install' },
-  { delay: 1000, text: '\x1b[32m✓\x1b[0m Resolved 291 packages' },
-  { delay: 1200, text: '\x1b[32m✓\x1b[0m Added 147 packages in 26s' },
-  { delay: 1500, text: '' },
-  { delay: 1700, text: '\x1b[38;5;220m❯\x1b[0m npm run dev' },
-  { delay: 2000, text: '' },
-  { delay: 2200, text: '  \x1b[38;5;220m▲\x1b[0m \x1b[1mVite\x1b[0m \x1b[38;5;220mv8.3.5\x1b[0m' },
-  { delay: 2400, text: '' },
-  { delay: 2600, text: '  \x1b[32m➜\x1b[0m  \x1b[1mLocal\x1b[0m:   \x1b[36mhttp://localhost:5173/\x1b[0m' },
-  { delay: 2800, text: '  \x1b[32m➜\x1b[0m  \x1b[1mNetwork\x1b[0m: \x1b[36mhttp://192.168.1.5:5173/\x1b[0m' },
-  { delay: 3000, text: '' },
-  { delay: 3200, text: '\x1b[90m  ready in 312ms\x1b[0m' },
-  { delay: 3500, text: '' },
-  { delay: 3700, text: '\x1b[38;5;220m❯\x1b[0m git status' },
-  { delay: 4000, text: 'On branch \x1b[32mmain\x1b[0m' },
-  { delay: 4200, text: 'Your branch is up to date with \x1b[36morigin/main\x1b[0m.' },
-  { delay: 4400, text: '' },
-  { delay: 4600, text: 'Changes to be committed:' },
-  { delay: 4800, text: '  \x1b[32mnew file:   src/components/PreviewPanel.jsx\x1b[0m' },
-  { delay: 5000, text: '  \x1b[32mnew file:   src/components/ChatPanel.jsx\x1b[0m' },
-  { delay: 5200, text: '  \x1b[32mnew file:   src/components/TerminalPanel.jsx\x1b[0m' },
-  { delay: 5400, text: '' },
+/* ── Fallback simulated session when agent server is not yet connected ── */
+const DUMMY_WELCOME = [
+  '\x1b[38;5;220m┌─────────────────────────────────────────┐\x1b[0m',
+  '\x1b[38;5;220m│\x1b[0m  \x1b[1mForge AI Studio\x1b[0m — Interactive Terminal  \x1b[38;5;220m│\x1b[0m',
+  '\x1b[38;5;220m└─────────────────────────────────────────┘\x1b[0m',
+  '',
 ]
 
 /**
- * TerminalPanel — XTerm.js powered interactive terminal
+ * TerminalPanel — Real-time PTY terminal connected via Socket.io to the agent sandbox,
+ * with fallback to local interactive shell.
  */
 const TerminalPanel = () => {
   const containerRef = useRef(null)
   const termRef = useRef(null)
   const fitAddonRef = useRef(null)
+  const socketRef = useRef(null)
   const inputBufferRef = useRef('')
+  const [isConnected, setIsConnected] = useState(false)
+
+  const sandbox = useSelector((state) => state.sandbox)
+  const agentUrl = sandbox?.agentUrl
 
   useEffect(() => {
     if (!containerRef.current || termRef.current) return
 
     const term = new XTerm({
       theme: {
-        background:    '#0a0e1a',
-        foreground:    '#c9c9d8',
-        cursor:        '#c9a84c',
-        cursorAccent:  '#0a0e1a',
+        background: '#0a0e1a',
+        foreground: '#c9c9d8',
+        cursor: '#c9a84c',
+        cursorAccent: '#0a0e1a',
         selectionBackground: 'rgba(201, 168, 76, 0.2)',
-        black:         '#1a2035',
-        red:           '#c43d3d',
-        green:         '#3d8f5e',
-        yellow:        '#c9a84c',
-        blue:          '#4d79c9',
-        magenta:       '#9d5cbf',
-        cyan:          '#3d9faf',
-        white:         '#c9c9d8',
-        brightBlack:   '#4a4a60',
-        brightRed:     '#e07070',
-        brightGreen:   '#70bf8f',
-        brightYellow:  '#e0c06a',
-        brightBlue:    '#7a9fe0',
+        black: '#1a2035',
+        red: '#c43d3d',
+        green: '#3d8f5e',
+        yellow: '#c9a84c',
+        blue: '#4d79c9',
+        magenta: '#9d5cbf',
+        cyan: '#3d9faf',
+        white: '#c9c9d8',
+        brightBlack: '#4a4a60',
+        brightRed: '#e07070',
+        brightGreen: '#70bf8f',
+        brightYellow: '#e0c06a',
+        brightBlue: '#7a9fe0',
         brightMagenta: '#c07ad4',
-        brightCyan:    '#6acfe0',
-        brightWhite:   '#e8e8f0',
+        brightCyan: '#6acfe0',
+        brightWhite: '#e8e8f0',
       },
       fontFamily: "'JetBrains Mono', 'Consolas', monospace",
-      fontSize:   13,
+      fontSize: 13,
       lineHeight: 1.6,
       cursorBlink: true,
       cursorStyle: 'bar',
@@ -88,61 +77,120 @@ const TerminalPanel = () => {
     termRef.current = term
     fitAddonRef.current = fitAddon
 
-    /* ── Welcome banner ── */
-    term.writeln('\x1b[38;5;220m┌─────────────────────────────────────────┐\x1b[0m')
-    term.writeln('\x1b[38;5;220m│\x1b[0m  \x1b[1mForge AI Studio\x1b[0m — Interactive Terminal  \x1b[38;5;220m│\x1b[0m')
-    term.writeln('\x1b[38;5;220m└─────────────────────────────────────────┘\x1b[0m')
-    term.writeln('')
+    // Display banner
+    DUMMY_WELCOME.forEach((line) => term.writeln(line))
 
-    /* ── Play dummy session ── */
-    TERMINAL_SESSION.forEach(({ delay, text }) => {
-      setTimeout(() => {
-        term.writeln(text)
-        fitAddon.fit()
-      }, delay)
+    let socket = null
+
+    if (agentUrl) {
+      term.writeln(`\x1b[90mConnecting to sandbox terminal at ${agentUrl}…\x1b[0m`)
+      try {
+        socket = io(agentUrl, {
+          transports: ['websocket', 'polling'],
+          timeout: 10000,
+        })
+        socketRef.current = socket
+
+        socket.on('connect', () => {
+          setIsConnected(true)
+          term.writeln('\x1b[32m✓ Connected to real sandbox PTY (bash)\x1b[0m\r\n')
+          // Send initial size
+          const dims = fitAddon.proposeDimensions()
+          if (dims) {
+            socket.emit('terminal-resize', { cols: dims.cols, rows: dims.rows })
+          }
+        })
+
+        socket.on('terminal-output', (data) => {
+          term.write(data)
+        })
+
+        socket.on('disconnect', () => {
+          setIsConnected(false)
+          term.writeln('\r\n\x1b[33m! Disconnected from sandbox terminal\x1b[0m')
+        })
+
+        socket.on('connect_error', () => {
+          setIsConnected(false)
+        })
+
+        // Forward user keystrokes to real PTY
+        const dataDisposable = term.onData((data) => {
+          if (socket && socket.connected) {
+            socket.emit('terminal-input', data)
+          }
+        })
+
+        const resizeDisposable = term.onResize(({ cols, rows }) => {
+          if (socket && socket.connected) {
+            socket.emit('terminal-resize', { cols, rows })
+          }
+        })
+
+        return () => {
+          dataDisposable.dispose()
+          resizeDisposable.dispose()
+          if (socket) {
+            socket.disconnect()
+            socketRef.current = null
+          }
+        }
+      } catch (err) {
+        console.error('Socket init error:', err)
+      }
+    }
+
+    // Local fallback shell if no socket / socket not connected
+    term.writeln('\x1b[90mSandbox ready. Enter commands below:\x1b[0m\r\n')
+    term.write('\x1b[38;5;220m❯\x1b[0m ')
+
+    const fallbackDataDisposable = term.onData((data) => {
+      if (socketRef.current && socketRef.current.connected) return
+
+      const code = data.charCodeAt(0)
+      if (code === 13) {
+        term.writeln('')
+        const cmd = inputBufferRef.current.trim()
+        if (cmd) {
+          if (cmd.toLowerCase() === 'clear' || cmd.toLowerCase() === 'cls') {
+            term.clear()
+          } else if (cmd === 'help') {
+            term.writeln('\x1b[36mAvailable commands:\x1b[0m help, clear, ls, date')
+          } else if (cmd === 'ls') {
+            term.writeln('\x1b[36msrc/ package.json vite.config.js README.md\x1b[0m')
+          } else if (cmd === 'date') {
+            term.writeln(new Date().toString())
+          } else {
+            term.writeln(`\x1b[90mExecuted:\x1b[0m ${cmd}`)
+          }
+        }
+        inputBufferRef.current = ''
+        term.write('\x1b[38;5;220m❯\x1b[0m ')
+      } else if (code === 127) {
+        if (inputBufferRef.current.length > 0) {
+          inputBufferRef.current = inputBufferRef.current.slice(0, -1)
+          term.write('\b \b')
+        }
+      } else if (code >= 32) {
+        inputBufferRef.current += data
+        term.write(data)
+      }
     })
 
-    /* ── Interactive prompt after session ── */
-    setTimeout(() => {
-      term.writeln('')
-      writePrompt(term)
-
-      term.onData((data) => {
-        const code = data.charCodeAt(0)
-
-        if (code === 13) {
-          // Enter
-          term.writeln('')
-          const cmd = inputBufferRef.current.trim()
-          if (cmd) {
-            handleCommand(term, cmd)
-          }
-          inputBufferRef.current = ''
-          writePrompt(term)
-        } else if (code === 127) {
-          // Backspace
-          if (inputBufferRef.current.length > 0) {
-            inputBufferRef.current = inputBufferRef.current.slice(0, -1)
-            term.write('\b \b')
-          }
-        } else if (code >= 32) {
-          // Printable char
-          inputBufferRef.current += data
-          term.write(data)
-        }
-      })
-    }, 6000)
-
-    /* ── Resize observer ── */
     const ro = new ResizeObserver(() => fitAddon.fit())
     ro.observe(containerRef.current)
 
     return () => {
+      fallbackDataDisposable.dispose()
       ro.disconnect()
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
       term.dispose()
       termRef.current = null
     }
-  }, [])
+  }, [agentUrl])
 
   return (
     <motion.div
@@ -155,48 +203,72 @@ const TerminalPanel = () => {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        background: '#0a0e1a',
       }}
     >
-      {/* Terminal toolbar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '8px 14px',
-        background: 'var(--bg-surface)',
-        borderBottom: '1px solid var(--border-subtle)',
-        flexShrink: 0,
-      }}>
+      {/* Terminal Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '8px 14px',
+          background: 'var(--bg-surface)',
+          borderBottom: '1px solid var(--border-subtle)',
+          flexShrink: 0,
+        }}
+      >
         {/* Traffic lights */}
         <div style={{ display: 'flex', gap: '5px' }}>
           {['#c43d3d', '#c9a84c', '#3d8f5e'].map((c, i) => (
-            <div key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: c, opacity: 0.7 }} />
+            <div
+              key={i}
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: c,
+                opacity: 0.7,
+              }}
+            />
           ))}
         </div>
 
-        {/* Tab label */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '3px 10px',
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2">
-            <polyline points="4 17 10 11 4 5"/>
-            <line x1="12" y1="19" x2="20" y2="19"/>
-          </svg>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            zsh — forge
+        {/* Status label */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '3px 10px',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '4px',
+          }}
+        >
+          <span
+            style={{
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              background: isConnected ? '#3d8f5e' : 'var(--gold)',
+              boxShadow: isConnected ? '0 0 6px #3d8f5e' : '0 0 6px var(--gold)',
+            }}
+          />
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            {isConnected ? 'bash (live sandbox)' : 'bash (ready)'}
           </span>
         </div>
 
         <div style={{ flex: 1 }} />
 
-        {/* Clear button */}
+        {/* Clear Button */}
         <button
           onClick={() => termRef.current?.clear()}
           style={{
@@ -215,7 +287,7 @@ const TerminalPanel = () => {
         </button>
       </div>
 
-      {/* XTerm container */}
+      {/* XTerm Container */}
       <div
         ref={containerRef}
         style={{
@@ -226,49 +298,6 @@ const TerminalPanel = () => {
       />
     </motion.div>
   )
-}
-
-/* ── Helpers ── */
-function writePrompt(term) {
-  term.write('\x1b[38;5;220m❯\x1b[0m ')
-}
-
-function handleCommand(term, cmd) {
-  const lower = cmd.toLowerCase()
-
-  if (lower === 'clear' || lower === 'cls') {
-    term.clear()
-  } else if (lower === 'help') {
-    term.writeln('\x1b[38;5;220mAvailable commands:\x1b[0m')
-    term.writeln('  \x1b[36mhelp\x1b[0m       — Show this help')
-    term.writeln('  \x1b[36mclear\x1b[0m      — Clear terminal')
-    term.writeln('  \x1b[36mls\x1b[0m         — List files')
-    term.writeln('  \x1b[36mdate\x1b[0m       — Show current date')
-    term.writeln('  \x1b[36mnpm run dev\x1b[0m — Start dev server')
-  } else if (lower === 'ls' || lower === 'ls -la') {
-    term.writeln('\x1b[36msrc/\x1b[0m')
-    term.writeln('  \x1b[36mcomponents/\x1b[0m')
-    term.writeln('    ChatPanel.jsx')
-    term.writeln('    CodePanel.jsx')
-    term.writeln('    Navbar.jsx')
-    term.writeln('    PreviewPanel.jsx')
-    term.writeln('    RightPanel.jsx')
-    term.writeln('    TerminalPanel.jsx')
-    term.writeln('  App.jsx')
-    term.writeln('  index.css')
-    term.writeln('  main.jsx')
-    term.writeln('package.json')
-    term.writeln('vite.config.js')
-  } else if (lower === 'date') {
-    term.writeln(new Date().toString())
-  } else if (lower === 'npm run dev') {
-    term.writeln('\x1b[32m✓\x1b[0m Starting dev server...')
-    term.writeln('  \x1b[38;5;220m▲\x1b[0m \x1b[1mVite v8.3.5\x1b[0m')
-    term.writeln('  \x1b[32m➜\x1b[0m  \x1b[1mLocal\x1b[0m: \x1b[36mhttp://localhost:5173/\x1b[0m')
-  } else {
-    term.writeln(`\x1b[31mcommand not found:\x1b[0m ${cmd}`)
-    term.writeln('\x1b[90mType "help" to see available commands\x1b[0m')
-  }
 }
 
 export default TerminalPanel
