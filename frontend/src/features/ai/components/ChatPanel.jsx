@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSelector } from 'react-redux'
 
 /* ── Dummy AI conversation data ── */
 const INITIAL_MESSAGES = [
@@ -73,12 +74,12 @@ const TypingIndicator = () => (
  * ChatPanel — Left AI chat sidebar
  */
 const ChatPanel = () => {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES)
+  const {messages:Messages} = useSelector((state)=>state.ai.messages)
+  const [messages, setMessages] = useState(Messages)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])

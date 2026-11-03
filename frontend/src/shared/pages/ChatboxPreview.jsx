@@ -14,8 +14,8 @@ import RightPanel from "../../features/sandbox/components/RightPanel";
  *   │           │                        │ Files │
  *   │ ChatPanel │       RightPanel       │  Panel│
  *   │  (~15%)   │ Preview / Code         │ (~15%)|
- *   │           │         (~70%)         │(like vs code)│
- *   │           │                        │       │
+ *   │           │         (~70% width)   |(like vs code)│
+ *   │           │   (height ~85%-52px)   │       │
      │           │─────────────────────── │       │
      │           │terminal (height ~15%)  │       │
      └───────────┴────────────────────────┴───────┘

@@ -1,112 +1,189 @@
 import { useDispatch, useSelector } from "react-redux";
-import { useCallback } from "react";
-
+import { useCallback, useRef, useState } from "react";
 import {
-    addMessage as addMessageAction,
+    addMessage,
+    appendUpdate,
     updateMessage,
-    clearMessages as clearMessagesAction,
+    setComplete,
+    setError,
+    clearMessages,
+    resetToInitial,
 } from "../ai.slice";
-
 import { invokeAI as invokeAIService } from "../services/ai.api";
 
 export const useAI = () => {
     const dispatch = useDispatch();
     const messages = useSelector((state) => state.ai.messages);
+    const sandbox = useSelector((state) => state.sandbox);
+    const [isStreaming, setIsStreaming] = useState(false);
+    const abortControllerRef = useRef(null);
 
-    const addMessage = (message) => {
-        dispatch(addMessageAction(message));
-    };
+    const invokeAI = useCallback(
+        async ({ prompt, projectId }) => {
+            if (!prompt || !prompt.trim() || isStreaming) return;
 
-    const clearMessages = () => {
-        dispatch(clearMessagesAction());
-    };
+            const trimmedPrompt = prompt.trim();
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-    const invokeAI = async ({ prompt, projectId }) => {
-        const assistantId = crypto.randomUUID();
-
-        // Add the user's message.
-        addMessage({
-            id: crypto.randomUUID(),
-            role: "user",
-            content: prompt,
-            status: "complete",
-        });
-
-        // Add an empty assistant message to stream into.
-        addMessage({
-            id: assistantId,
-            role: "assistant",
-            content: "",
-            status: "streaming",
-        });
-
-        try {
-            await invokeAIService({
-                prompt,
-                projectId,
-
-                onEvent: ({ event, data }) => {
-                    if (event === "update") {
-                        const chunk =
-                            typeof data === "string"
-                                ? data
-                                : data.content || data.chunk || "";
-
-                        dispatch(
-                            updateMessage({
-                                id: assistantId,
-                                updates: {
-                                    content: messages.find(
-                                        (msg) => msg.id === assistantId
-                                    )?.content + chunk,
-                                },
-                            })
-                        );
-                    }
-
-                    if (event === "complete") {
-                        dispatch(
-                            updateMessage({
-                                id: assistantId,
-                                updates: {
-                                    content:
-                                        typeof data === "string"
-                                            ? data
-                                            : data.content || "",
-                                    status: "complete",
-                                },
-                            })
-                        );
-                    }
-                },
-            });
-
-            // Mark complete if the stream ended without a complete event.
+            // 1. Add user message
+            const userMessageId = crypto.randomUUID();
             dispatch(
-                updateMessage({
-                    id: assistantId,
-                    updates: { status: "complete" },
+                addMessage({
+                    id: userMessageId,
+                    role: "user",
+                    content: trimmedPrompt,
+                    timestamp: timeStr,
+                    status: "complete",
+                    updates: [],
                 })
             );
-        } catch (error) {
+
+            // 2. Add assistant message with 'streaming' status
+            const assistantId = crypto.randomUUID();
+            const startTime = Date.now();
             dispatch(
-                updateMessage({
+                addMessage({
                     id: assistantId,
-                    updates: {
-                        status: "error",
-                        content: "Something went wrong while generating the response.",
+                    role: "assistant",
+                    content: "",
+                    timestamp: timeStr,
+                    status: "streaming",
+                    updates: [],
+                    currentStep: "Thinking...",
+                    startTime,
+                })
+            );
+
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
+            setIsStreaming(true);
+
+            let hasReceivedComplete = false;
+            let finalContentRecorded = "";
+
+            // Use passed projectId, or fallback to sandboxId, or default
+            const resolvedProjectId = projectId || sandbox?.sandboxId || "default-project";
+
+            try {
+                await invokeAIService({
+                    prompt: trimmedPrompt,
+                    projectId: resolvedProjectId,
+                    signal: abortController.signal,
+                    onEvent: ({ event, data }) => {
+                        if (event === "update") {
+                            let updateText = "";
+                            if (typeof data === "string") {
+                                updateText = data.trim();
+                            } else if (data && typeof data === "object") {
+                                updateText = (data.content || data.chunk || data.message || data.text || data.update || "").trim();
+                            }
+
+                            if (updateText) {
+                                dispatch(
+                                    appendUpdate({
+                                        id: assistantId,
+                                        update: updateText,
+                                    })
+                                );
+                            }
+                        } else if (event === "complete") {
+                            hasReceivedComplete = true;
+
+                            let parsedContent = "";
+                            if (typeof data === "string") {
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    parsedContent = parsed.response || parsed.content || parsed.message || data;
+                                } catch {
+                                    parsedContent = data;
+                                }
+                            } else if (data && typeof data === "object") {
+                                parsedContent = data.response || data.content || data.message || "";
+                            }
+
+                            finalContentRecorded = parsedContent;
+                            const durationSec = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+
+                            dispatch(
+                                setComplete({
+                                    id: assistantId,
+                                    content: parsedContent,
+                                    duration: durationSec,
+                                })
+                            );
+                        }
                     },
-                })
-            );
+                });
 
-            throw error;
+                // If the stream ended without throwing, make sure status is complete
+                const durationSec = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+                if (!hasReceivedComplete) {
+                    dispatch(
+                        updateMessage({
+                            id: assistantId,
+                            updates: {
+                                status: "complete",
+                                duration: durationSec,
+                                ...(finalContentRecorded ? {} : { content: "Workspace updates completed successfully." }),
+                            },
+                        })
+                    );
+                }
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    const durationSec = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+                    dispatch(
+                        updateMessage({
+                            id: assistantId,
+                            updates: {
+                                status: "complete",
+                                currentStep: "Stopped by user",
+                                duration: durationSec,
+                            },
+                        })
+                    );
+                } else {
+                    console.error("AI invocation error:", error);
+                    dispatch(
+                        setError({
+                            id: assistantId,
+                            error: error.message || "Failed to communicate with AI server.",
+                        })
+                    );
+                }
+            } finally {
+                setIsStreaming(false);
+                abortControllerRef.current = null;
+            }
+        },
+        [dispatch, isStreaming, sandbox?.sandboxId]
+    );
+
+    const stopStreaming = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
-    };
+        setIsStreaming(false);
+    }, []);
+
+    const clearChat = useCallback(() => {
+        dispatch(clearMessages());
+    }, [dispatch]);
+
+    const resetChat = useCallback(() => {
+        dispatch(resetToInitial());
+    }, [dispatch]);
 
     return {
         messages,
-        addMessage,
-        clearMessages,
+        isStreaming,
         invokeAI,
+        stopStreaming,
+        clearChat,
+        resetChat,
+        addMessage: (msg) => dispatch(addMessage(msg)),
+        clearMessages: () => dispatch(clearMessages()),
     };
 };
