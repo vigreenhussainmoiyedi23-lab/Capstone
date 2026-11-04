@@ -21,12 +21,25 @@ export const useProjectSocket = (projectId) => {
         const onConnectError = (error) => {
             console.error("Socket error:", error.message);
         };
+        let outputBuffer = "";
+        let timeoutId;
+
+        const handleTerminalOutput = (data) => {
+            outputBuffer += data;
+
+            clearTimeout(timeoutId);
+
+            timeoutId = setTimeout(() => {
+                if (outputBuffer) {
+                    dispatch(addTerminalMessage(outputBuffer));
+                    outputBuffer = "";
+                }
+            }, 500);
+        };
 
         socketInstance.on("connect", onConnect);
         socketInstance.on("connect_error", onConnectError);
-        socketInstance.on("terminal-output", (data) => {
-            dispatch(addTerminalMessage(data));
-        });
+        socketInstance.on("terminal-output", handleTerminalOutput);
         setSocket(socketInstance);
         socketInstance.connect();
 

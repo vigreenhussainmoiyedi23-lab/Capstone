@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { useDispatch, useSelector } from "react-redux";
+
 import { clearTerminalMessages } from "../../ai/ai.slice";
 
-/* ── Fallback simulated session when agent server is not yet connected ── */
+/* ── Terminal Welcome Banner ── */
+
 const DUMMY_WELCOME = [
   "\x1b[38;5;220m┌─────────────────────────────────────────┐\x1b[0m",
   "\x1b[38;5;220m│\x1b[0m  \x1b[1mForge AI Studio\x1b[0m — Interactive Terminal  \x1b[38;5;220m│\x1b[0m",
@@ -14,41 +16,26 @@ const DUMMY_WELCOME = [
   "",
 ];
 
-/**
- * TerminalPanel — Real-time PTY terminal connected via Socket.io to the agent sandbox,
- * with fallback to local interactive shell.
- */
-const TerminalPanel = ({ sendCommand }) => {
+/* ── Terminal Component ── */
+
+const TerminalPanel = ({ sendCommand, isConnected = false }) => {
+  // Redux
   const dispatch = useDispatch();
 
   const terminalMessages = useSelector((state) => state.ai.terminalMessages);
 
+  // Refs
+  const containerRef = useRef(null);
+  const termRef = useRef(null);
   const inputBufferRef = useRef("");
   const lastRenderedCountRef = useRef(0);
   const sendCommandRef = useRef(sendCommand);
-  const clearTerminal = () => {
-    termRef.current?.clear();
-    lastRenderedCountRef.current = 0;
-    inputBufferRef.current = "";
 
-    dispatch(clearTerminalMessages());
-  };
-  useEffect(() => {
-    sendCommandRef.current = sendCommand;
-  }, [sendCommand]);
-
-  const containerRef = useRef(null);
-  const termRef = useRef(null);
-  const fitAddonRef = useRef(null);
-  const socketRef = useRef(null);
-  const [isConnected, setIsConnected] = useState(false);
-
-  const sandbox = useSelector((state) => state.sandbox);
-  const agentUrl = sandbox?.agentUrl;
+  /* ── Initialize XTerm ── */
 
   useEffect(() => {
     if (!containerRef.current || termRef.current) return;
-    const terminalMessages = useSelector((state) => state.ai.terminalMessages);
+
     const term = new XTerm({
       theme: {
         background: "#0a0e1a",
@@ -73,6 +60,7 @@ const TerminalPanel = ({ sendCommand }) => {
         brightCyan: "#6acfe0",
         brightWhite: "#e8e8f0",
       },
+
       fontFamily: "'JetBrains Mono', 'Consolas', monospace",
       fontSize: 13,
       lineHeight: 1.6,
@@ -82,105 +70,107 @@ const TerminalPanel = ({ sendCommand }) => {
       convertEol: true,
       allowTransparency: true,
     });
-    const dispatch = useDispatch();
-    function clearTerminal() {
-      term.clear();
-      dispatch(clearTerminalMessages());
-    }
+
     const fitAddon = new FitAddon();
     const webLinksAddon = new WebLinksAddon();
 
     term.loadAddon(fitAddon);
     term.loadAddon(webLinksAddon);
+
     term.open(containerRef.current);
     fitAddon.fit();
 
     termRef.current = term;
-    fitAddonRef.current = fitAddon;
 
-    // Display banner
-    DUMMY_WELCOME.forEach((line) => term.writeln(line));
-
-    // Local fallback shell if no socket / socket not connected
-    term.writeln("\x1b[90mSandbox ready. Enter commands below:\x1b[0m\r\n");
-    term.write("\x1b[38;5;220m❯\x1b[0m ");
-
-    const inputDisposable = term.onData((data) => {
-      const code = data.charCodeAt(0);
-
-      // Enter
-      if (code === 13) {
-        term.write("\r\n");
-
-        const command = inputBufferRef.current.trim();
-
-        if (command) {
-          sendCommandRef.current?.(command);
-        }
-
-        inputBufferRef.current = "";
-      }
-
-      // Backspace
-      else if (code === 127) {
-        if (inputBufferRef.current.length > 0) {
-          inputBufferRef.current = inputBufferRef.current.slice(0, -1);
-
-          term.write("\b \b");
-        }
-      }
-
-      // Normal characters
-      else if (code >= 32) {
-        inputBufferRef.current += data;
-        term.write(data);
-      }
+    // Welcome banner
+    DUMMY_WELCOME.forEach((line) => {
+      term.writeln(line);
     });
 
-    const ro = new ResizeObserver(() => fitAddon.fit());
-    ro.observe(containerRef.current);
+    term.writeln("\x1b[90mSandbox ready. Enter commands below:\x1b[0m");
+
+    term.write("\x1b[38;5;220m❯\x1b[0m ");
+
+    /* ── Terminal Input ── */
+
+    const inputDisposable = term.onData((data) => {
+      sendCommandRef.current?.(data);
+    });
+    /* ── Terminal Resize ── */
+
+    const resizeObserver = new ResizeObserver(() => {
+      fitAddon.fit();
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    /* ── Cleanup ── */
 
     return () => {
-      fallbackDataDisposable.dispose();
-      ro.disconnect();
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      inputDisposable.dispose();
+
+      resizeObserver.disconnect();
+
       term.dispose();
+
       termRef.current = null;
+
+      inputBufferRef.current = "";
+
+      lastRenderedCountRef.current = 0;
     };
-  }, [agentUrl]);
+  }, []);
+
+  /* ── Render Redux Terminal Output ── */
+
   useEffect(() => {
     const term = termRef.current;
 
     if (!term) return;
 
-    // Detect Redux terminal clear
+    // Detect terminal clear / message reset
     if (terminalMessages.length < lastRenderedCountRef.current) {
       term.clear();
+
       lastRenderedCountRef.current = 0;
     }
 
-    // Render only newly received output
+    // Get only newly received messages
     const newMessages = terminalMessages.slice(lastRenderedCountRef.current);
 
     newMessages.forEach((message) => {
       const output =
         typeof message === "string"
           ? message
-          : (message.data ?? message.output ?? "");
+          : (message?.data ?? message?.output ?? "");
 
-      term.write(output);
+      if (output) term.write(String(output));
     });
-
     lastRenderedCountRef.current = terminalMessages.length;
   }, [terminalMessages]);
+
+  /* ── Clear Terminal ── */
+
+  const handleClear = () => {
+    termRef.current?.clear();
+
+    inputBufferRef.current = "";
+
+    lastRenderedCountRef.current = 0;
+
+    dispatch(clearTerminalMessages());
+  };
+
+  /* ── UI ── */
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      transition={{
+        duration: 0.3,
+        ease: [0.4, 0, 0.2, 1],
+      }}
       style={{
         width: "100%",
         height: "100%",
@@ -191,6 +181,7 @@ const TerminalPanel = ({ sendCommand }) => {
       }}
     >
       {/* Terminal Toolbar */}
+
       <div
         style={{
           display: "flex",
@@ -202,23 +193,25 @@ const TerminalPanel = ({ sendCommand }) => {
           flexShrink: 0,
         }}
       >
-        {/* Traffic lights */}
+        {/* Traffic Lights */}
+
         <div style={{ display: "flex", gap: "5px" }}>
-          {["#c43d3d", "#c9a84c", "#3d8f5e"].map((c, i) => (
+          {["#c43d3d", "#c9a84c", "#3d8f5e"].map((color, i) => (
             <div
               key={i}
               style={{
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                background: c,
+                background: color,
                 opacity: 0.7,
               }}
             />
           ))}
         </div>
 
-        {/* Status label */}
+        {/* Connection Status */}
+
         <div
           style={{
             display: "flex",
@@ -241,6 +234,7 @@ const TerminalPanel = ({ sendCommand }) => {
                 : "0 0 6px var(--gold)",
             }}
           />
+
           <span
             style={{
               fontSize: "11px",
@@ -255,8 +249,9 @@ const TerminalPanel = ({ sendCommand }) => {
         <div style={{ flex: 1 }} />
 
         {/* Clear Button */}
+
         <button
-          onClick={() => termRef.current?.clear()}
+          onClick={handleClear}
           style={{
             padding: "3px 9px",
             background: "transparent",
@@ -274,6 +269,7 @@ const TerminalPanel = ({ sendCommand }) => {
       </div>
 
       {/* XTerm Container */}
+
       <div
         ref={containerRef}
         style={{

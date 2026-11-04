@@ -40,7 +40,9 @@ const TABS = [
       </svg>
     ),
   },
-  {
+ 
+];
+const terminalTab= {
     id: "terminal",
     label: "Terminal",
     icon: (
@@ -56,9 +58,7 @@ const TABS = [
         <line x1="12" y1="19" x2="20" y2="19" />
       </svg>
     ),
-  },
-];
-
+  }
 /**
  * RightPanel — Tab switcher for Preview / Code / Terminal
  */
@@ -70,7 +70,6 @@ const RightPanel = ({ theme, projectId, socket }) => {
       return;
     }
     socket.emit("terminal-input", command);
-    dispatch(addTerminalMessage(command));
   };
   return (
     <div
@@ -255,15 +254,13 @@ const RightPanel = ({ theme, projectId, socket }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            style={{ width: "100%", height: "100%" }}
+            style={{ width: "100%", height: "70%" }}
           >
             {activeTab === "preview" && <PreviewPanel projectId={projectId} />}
-            {activeTab === "code" && (
-              <CodePanel theme={theme}  />
-            )}
-            {activeTab === "terminal" && <TerminalPanel sendCommand={sendCommand} />}
+            {activeTab === "code" && <CodePanel theme={theme} />}
           </motion.div>
         </AnimatePresence>
+      <TerminalPanel sendCommand={sendCommand} />
       </div>
     </div>
   );
