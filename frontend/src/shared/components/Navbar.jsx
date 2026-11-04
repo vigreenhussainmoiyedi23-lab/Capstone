@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-
+import { useState, useRef } from "react";
 /**
  * Navbar — Top navigation bar with logo, title, and controls
  */
@@ -67,30 +67,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
         </span>
       </motion.div>
 
-      {/* Center breadcrumb */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        position: 'absolute',
-        left: '50%',
-        transform: 'translateX(-50%)',
-      }}>
-        <div style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: '#3d8f5e',
-          boxShadow: '0 0 6px #3d8f5e',
-        }} />
-        <span style={{
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          fontWeight: 500,
-        }}>
-          my-portfolio-site
-        </span>
-      </div>
+    
 
       {/* Right controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PreviewPanel from "./PreviewPanel.jsx";
 import CodePanel from "./CodePanel.jsx";
@@ -40,25 +40,24 @@ const TABS = [
       </svg>
     ),
   },
- 
 ];
-const terminalTab= {
-    id: "terminal",
-    label: "Terminal",
-    icon: (
-      <svg
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <polyline points="4 17 10 11 4 5" />
-        <line x1="12" y1="19" x2="20" y2="19" />
-      </svg>
-    ),
-  }
+const terminalTab = {
+  id: "terminal",
+  label: "Terminal",
+  icon: (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <polyline points="4 17 10 11 4 5" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
+  ),
+};
 /**
  * RightPanel — Tab switcher for Preview / Code / Terminal
  */
@@ -70,6 +69,47 @@ const RightPanel = ({ theme, projectId, socket }) => {
       return;
     }
     socket.emit("terminal-input", command);
+  };
+  const [topHeight, setTopHeight] = useState(70);
+  const isDragging = useRef(false);
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", stopDragging);
+    };
+  }, []);
+  const handleMouseMove = (e) => {
+    if (!isDragging.current) return;
+
+    const container = document.getElementById("right-panel-content");
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+
+    const percentage = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Code/Preview must occupy at least 60%
+    // Terminal must have at least 100px
+    const minTerminalPercentage = (100 / rect.height) * 100;
+
+    const nextHeight = Math.min(
+      85,
+      Math.max(60, Math.min(percentage, 100 - minTerminalPercentage)),
+    );
+
+    setTopHeight(nextHeight);
+  };
+
+  const stopDragging = () => {
+    isDragging.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", stopDragging);
+  };
+
+  const startDragging = () => {
+    isDragging.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", stopDragging);
   };
   return (
     <div
@@ -246,21 +286,72 @@ const RightPanel = ({ theme, projectId, socket }) => {
       </div>
 
       {/* Panel content */}
-      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            style={{ width: "100%", height: "70%" }}
-          >
-            {activeTab === "preview" && <PreviewPanel projectId={projectId} />}
-            {activeTab === "code" && <CodePanel theme={theme} />}
-          </motion.div>
-        </AnimatePresence>
-      <TerminalPanel sendCommand={sendCommand} />
+      <div
+        id="right-panel-content"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {/* Preview / Code */}
+        <div
+          style={{
+            height: `${topHeight}%`,
+            minHeight: "60%",
+            overflow: "hidden",
+            flexShrink: 0,
+          }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+            >
+              {activeTab === "preview" && (
+                <PreviewPanel projectId={projectId} />
+              )}
+
+              {activeTab === "code" && <CodePanel theme={theme} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Draggable Divider */}
+        <div
+          onMouseDown={startDragging}
+          style={{
+            height: "6px",
+            flexShrink: 0,
+            cursor: "row-resize",
+            background: isDragging.current
+              ? "var(--gold)"
+              : "var(--border-default)",
+            transition: "background 0.2s",
+            zIndex: 10,
+          }}
+        />
+
+        {/* Terminal */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
+          <TerminalPanel sendCommand={sendCommand} />
+        </div>
       </div>
     </div>
   );

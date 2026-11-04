@@ -94,7 +94,7 @@ const ChatboxPreview = () => {
       }}
     >
       {/* ── Top navigation bar ── */}
-      <Navbar theme={theme} onToggleTheme={toggleTheme} />
+      {/* <Navbar theme={theme} onToggleTheme={toggleTheme} /> */}
 
       {/* ── Main content area ── */}
       <div
