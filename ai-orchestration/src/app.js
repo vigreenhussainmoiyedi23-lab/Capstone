@@ -16,10 +16,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-app.use((req, res, next) => {
-    console.log("Origin:", req.headers.origin);
-    next();
-});
+
 app.get("/api/status/healthz", (req, res) => {
   res.send("Hello, World!");
 })

@@ -5,7 +5,7 @@ import path from "path"
 import { Server } from "socket.io";
 import http from "http";
 import pty from "node-pty"
-
+import cors from "cors"
 const app = express()
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"] } });
@@ -13,6 +13,17 @@ const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"
 app.use(morgan("combined"))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use((req, res, next) => {
+    console.log("INCOMING REQUEST:", req.method, req.url);
+    console.log("ORIGIN:", req.headers.origin);
+    next();
+});
+app.use(cors({
+    origin: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+}));
 
 const directoryPath = "/workspace"; // Specify the directory you want to list files from
 app.get("/api/status/healthz", (req, res) => {

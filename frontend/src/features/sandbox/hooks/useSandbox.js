@@ -1,7 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useState, useCallback } from "react";
-import { setSandboxData } from "../sandbox.slice";
-import { createSandboxEnvironment } from "../services/sandbox.api";
+import { addCodeFile, listAllFiles, setSandboxData } from "../sandbox.slice.js";
+import { createSandboxEnvironment } from "../services/sandbox.api.js";
+import { listWorkspaceFiles } from "../services/agent.api.js";
 
 export const useSandbox = () => {
     const dispatch = useDispatch();
@@ -33,13 +34,19 @@ export const useSandbox = () => {
             setIsLoading(false);
         }
     }, [dispatch]);
-
+    const getAllFiles = useCallback(async (projectId) => {
+        try {
+            const response = await listWorkspaceFiles(projectId);
+            dispatch(listAllFiles(response.files));
+            console.log("All files listed successfully:", response.files);
+        } catch (error) {
+            console.error("Error listing all files:", error.response?.data?.message || error.message || "Failed to list all files");
+        }
+    }, []);
     return {
         createSandbox,
         isLoading,
         error,
-        sandboxId: sandbox?.sandboxId,
-        previewUrl: sandbox?.previewUrl,
-        agentUrl: sandbox?.agentUrl,
+        getAllFiles,
     };
 };

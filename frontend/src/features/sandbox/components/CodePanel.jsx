@@ -6,7 +6,7 @@ import { FileCode, RefreshCw, Copy, Check } from "lucide-react";
 import {
   listWorkspaceFiles,
   readWorkspaceFiles,
-} from "../services/sandbox.api";
+} from "../services/agent.api";
 
 /* ── Fallback code files when workspace is offline ── */
 const DEFAULT_CODE = {
