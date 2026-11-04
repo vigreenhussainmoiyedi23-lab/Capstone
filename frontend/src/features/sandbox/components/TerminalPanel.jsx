@@ -4,8 +4,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { useDispatch, useSelector } from "react-redux";
-
-import { clearTerminalMessages } from "../../ai/ai.slice";
+import { clearTerminalMessages } from "../sandbox.slice.js";
 
 /* ── Terminal Welcome Banner ── */
 
@@ -22,7 +21,9 @@ const TerminalPanel = ({ sendCommand, isConnected = false }) => {
   // Redux
   const dispatch = useDispatch();
 
-  const terminalMessages = useSelector((state) => state.ai.terminalMessages);
+  const terminalMessages = useSelector(
+    (state) => state.sandbox.terminalMessages,
+  );
 
   // Refs
   const containerRef = useRef(null);
@@ -187,7 +188,7 @@ const TerminalPanel = ({ sendCommand, isConnected = false }) => {
           display: "flex",
           alignItems: "center",
           gap: "10px",
-          padding: "8px 14px",
+          // padding: "8px 14px",
           background: "var(--bg-surface)",
           borderBottom: "1px solid var(--border-subtle)",
           flexShrink: 0,
@@ -275,7 +276,7 @@ const TerminalPanel = ({ sendCommand, isConnected = false }) => {
         style={{
           flex: 1,
           overflow: "hidden",
-          padding: "4px",
+          // padding: "4px",
         }}
       />
     </motion.div>

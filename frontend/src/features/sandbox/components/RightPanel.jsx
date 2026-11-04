@@ -1,5 +1,18 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Terminal as TerminalIcon,
+  Code2,
+  Globe,
+  Monitor,
+  Smartphone,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Minimize2,
+  Share2,
+  Check,
+} from "lucide-react";
 import PreviewPanel from "./PreviewPanel.jsx";
 import CodePanel from "./CodePanel.jsx";
 import TerminalPanel from "./TerminalPanel.jsx";
@@ -8,109 +21,101 @@ const TABS = [
   {
     id: "preview",
     label: "Preview",
-    icon: (
-      <svg
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-        <line x1="8" y1="21" x2="16" y2="21" />
-        <line x1="12" y1="17" x2="12" y2="21" />
-      </svg>
-    ),
+    icon: Globe,
   },
   {
     id: "code",
     label: "Code",
-    icon: (
-      <svg
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <polyline points="16 18 22 12 16 6" />
-        <polyline points="8 6 2 12 8 18" />
-      </svg>
-    ),
+    icon: Code2,
   },
 ];
-const terminalTab = {
-  id: "terminal",
-  label: "Terminal",
-  icon: (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <polyline points="4 17 10 11 4 5" />
-      <line x1="12" y1="19" x2="20" y2="19" />
-    </svg>
-  ),
-};
+
 /**
- * RightPanel — Tab switcher for Preview / Code / Terminal
+ * RightPanel — Main Workspace panel with fluid resizable split between
+ * Top (Preview / Code) and Bottom (Terminal).
  */
-const RightPanel = ({ theme, projectId, socket }) => {
+const RightPanel = ({ theme = "dark", projectId, socket }) => {
   const [activeTab, setActiveTab] = useState("preview");
+  const [deviceMode, setDeviceMode] = useState("desktop"); // 'desktop' | 'mobile'
+  const [isCopiedShare, setIsCopiedShare] = useState(false);
+  const socketRef = useRef(socket);
+  // Always keep the latest socket
+  socketRef.current = socket;
+
+  // Terminal & Split Layout State
+  const [topHeight, setTopHeight] = useState(68); // percentage
+  const [isTerminalOpen, setIsTerminalOpen] = useState(true);
+  const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const containerRef = useRef(null);
+
   const sendCommand = (command) => {
+    const socket = socketRef.current;
     if (!socket?.connected) {
-      console.error("Socket is not connected");
+      console.warn("Socket is not connected");
       return;
     }
     socket.emit("terminal-input", command);
   };
-  const [topHeight, setTopHeight] = useState(70);
-  const isDragging = useRef(false);
-  useEffect(() => {
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", stopDragging);
-    };
-  }, []);
-  const handleMouseMove = (e) => {
-    if (!isDragging.current) return;
 
-    const container = document.getElementById("right-panel-content");
+  /**
+   * Resizing logic with iframe pointer-event shield
+   */
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+
+    const container = containerRef.current;
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
 
-    const percentage = ((e.clientY - rect.top) / rect.height) * 100;
+    const handleMouseMove = (moveEvent) => {
+      const offsetFromTop = moveEvent.clientY - rect.top;
+      const newPercentage = (offsetFromTop / rect.height) * 100;
 
-    // Code/Preview must occupy at least 60%
-    // Terminal must have at least 100px
-    const minTerminalPercentage = (100 / rect.height) * 100;
+      // Fluid bounds: between 18% and 88%
+      const clamped = Math.min(88, Math.max(18, newPercentage));
+      setTopHeight(clamped);
+    };
 
-    const nextHeight = Math.min(
-      85,
-      Math.max(60, Math.min(percentage, 100 - minTerminalPercentage)),
-    );
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
 
-    setTopHeight(nextHeight);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  const handleToggleTerminal = () => {
+    if (isTerminalMaximized) {
+      setIsTerminalMaximized(false);
+      setIsTerminalOpen(true);
+    } else {
+      setIsTerminalOpen((prev) => !prev);
+    }
   };
 
-  const stopDragging = () => {
-    isDragging.current = false;
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", stopDragging);
+  const handleToggleMaximize = () => {
+    setIsTerminalMaximized((prev) => !prev);
+    if (!isTerminalOpen) setIsTerminalOpen(true);
   };
 
-  const startDragging = () => {
-    isDragging.current = true;
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", stopDragging);
+  const handleResetSplit = () => {
+    setTopHeight(68);
+    setIsTerminalOpen(true);
+    setIsTerminalMaximized(false);
   };
+
+  const handleShare = () => {
+    navigator.clipboard?.writeText(window.location.href);
+    setIsCopiedShare(true);
+    setTimeout(() => setIsCopiedShare(false), 2000);
+  };
+
   return (
     <div
       style={{
@@ -122,171 +127,210 @@ const RightPanel = ({ theme, projectId, socket }) => {
         background: "var(--bg-base)",
       }}
     >
-      {/* Tab bar */}
+      {/* ── Top Workspace Tab Bar ── */}
       <div
         style={{
           display: "flex",
-          alignItems: "stretch",
-          height: "44px",
+          alignItems: "center",
+          height: "42px",
           background: "var(--bg-panel)",
           borderBottom: "1px solid var(--border-default)",
           flexShrink: 0,
-          padding: "0 8px",
-          gap: "2px",
+          padding: "0 10px",
+          gap: "4px",
+          userSelect: "none",
         }}
       >
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <motion.button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "7px",
-                padding: "0 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${isActive ? "var(--gold)" : "transparent"}`,
-                color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                fontSize: "12.5px",
-                fontWeight: isActive ? 600 : 400,
-                cursor: "pointer",
-                fontFamily: "var(--font-sans)",
-                transition: "color 0.2s ease",
-                whiteSpace: "nowrap",
-                position: "relative",
-              }}
-              whileHover={{ color: "var(--text-primary)" }}
-              id={`tab-${tab.id}`}
-            >
-              <span
+        {/* Workspace Mode Tabs (Preview / Code) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (isTerminalMaximized) setIsTerminalMaximized(false);
+                }}
                 style={{
-                  opacity: isActive ? 1 : 0.6,
-                  transition: "opacity 0.2s",
                   display: "flex",
                   alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 14px",
+                  background: isActive ? "var(--bg-elevated)" : "transparent",
+                  border: "1px solid",
+                  borderColor: isActive
+                    ? "var(--border-accent)"
+                    : "transparent",
+                  borderRadius: "6px",
+                  color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                  fontSize: "12px",
+                  fontWeight: isActive ? 600 : 400,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
+                  transition: "all 0.15s ease",
                 }}
+                id={`tab-${tab.id}`}
               >
-                {tab.icon}
-              </span>
-              {tab.label}
-
-              {/* Active gold indicator */}
-              {isActive && (
-                <motion.div
-                  layoutId="active-tab-indicator"
+                <Icon
+                  size={13}
                   style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: "2px",
-                    background: "var(--gold)",
-                    borderRadius: "2px 2px 0 0",
+                    color: isActive ? "var(--gold)" : "currentColor",
+                    opacity: isActive ? 1 : 0.7,
                   }}
-                  transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                 />
-              )}
-            </motion.button>
-          );
-        })}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        <div style={{ flex: 1 }} />
-
-        {/* Right-side actions */}
-        <div
+        {/* Terminal Toggle Button in Main Tab Bar */}
+        <button
+          type="button"
+          onClick={handleToggleTerminal}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "8px",
-            paddingRight: "4px",
+            gap: "5px",
+            padding: "6px 12px",
+            background: isTerminalOpen ? "var(--gold-glow)" : "transparent",
+            border: "1px solid",
+            borderColor: isTerminalOpen
+              ? "var(--border-accent)"
+              : "var(--border-subtle)",
+            borderRadius: "6px",
+            color: isTerminalOpen ? "var(--gold)" : "var(--text-muted)",
+            fontSize: "12px",
+            fontWeight: isTerminalOpen ? 600 : 400,
+            cursor: "pointer",
+            fontFamily: "var(--font-sans)",
+            marginLeft: "4px",
+            transition: "all 0.15s ease",
           }}
+          title={
+            isTerminalOpen ? "Collapse Terminal panel" : "Show Terminal panel"
+          }
         >
-          {/* Responsive sizing toggle */}
-          <div style={{ display: "flex", gap: "3px" }}>
-            {[
-              {
-                id: "desktop",
-                icon: "M20 3H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h7v2H9v2h6v-2h-2v-2h7a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z",
-              },
-              {
-                id: "mobile",
-                icon: "M12 20h.01M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z",
-              },
-            ].map(({ id, icon }) => (
+          <TerminalIcon size={12} />
+          <span>Terminal</span>
+          <span
+            style={{
+              width: "5px",
+              height: "5px",
+              borderRadius: "50%",
+              background: isTerminalOpen ? "var(--gold)" : "#3d8f5e",
+            }}
+          />
+        </button>
+
+        <div style={{ flex: 1 }} />
+
+        {/* Right-Side Tools */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Responsive device viewport toggle (Active in Preview mode) */}
+          {activeTab === "preview" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "var(--bg-surface)",
+                padding: "2px",
+                borderRadius: "6px",
+                border: "1px solid var(--border-subtle)",
+              }}
+            >
               <button
-                key={id}
+                type="button"
+                onClick={() => setDeviceMode("desktop")}
                 style={{
-                  width: "26px",
-                  height: "26px",
-                  borderRadius: "5px",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
                   background:
-                    id === "desktop" ? "var(--gold-glow)" : "transparent",
-                  border: `1px solid ${id === "desktop" ? "var(--border-accent)" : "var(--border-subtle)"}`,
-                  color: id === "desktop" ? "var(--gold)" : "var(--text-muted)",
+                    deviceMode === "desktop"
+                      ? "var(--bg-elevated)"
+                      : "transparent",
+                  border: "none",
+                  color:
+                    deviceMode === "desktop"
+                      ? "var(--gold)"
+                      : "var(--text-muted)",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: "4px",
+                  fontSize: "11px",
                 }}
+                title="Desktop View (100%)"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d={icon} />
-                </svg>
+                <Monitor size={12} />
+                <span className="hidden sm:inline">Desktop</span>
               </button>
-            ))}
-          </div>
 
-          {/* Share button */}
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+              <button
+                type="button"
+                onClick={() => setDeviceMode("mobile")}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  background:
+                    deviceMode === "mobile"
+                      ? "var(--bg-elevated)"
+                      : "transparent",
+                  border: "none",
+                  color:
+                    deviceMode === "mobile"
+                      ? "var(--gold)"
+                      : "var(--text-muted)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                }}
+                title="Mobile View (390px)"
+              >
+                <Smartphone size={12} />
+                <span className="hidden sm:inline">Mobile</span>
+              </button>
+            </div>
+          )}
+
+          {/* Share Link Button */}
+          <button
+            type="button"
+            onClick={handleShare}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "5px",
               padding: "5px 10px",
-              background: "var(--gold-glow)",
-              border: "1px solid var(--border-accent)",
-              borderRadius: "5px",
-              color: "var(--gold)",
+              background: isCopiedShare
+                ? "rgba(61, 143, 94, 0.2)"
+                : "var(--bg-surface)",
+              border: "1px solid",
+              borderColor: isCopiedShare ? "#3d8f5e" : "var(--border-subtle)",
+              borderRadius: "6px",
+              color: isCopiedShare ? "#4ade80" : "var(--text-muted)",
               fontSize: "11px",
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: "pointer",
               fontFamily: "var(--font-sans)",
+              transition: "all 0.15s ease",
             }}
-            id="share-btn"
+            title="Copy project share URL"
           >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-            Share
-          </motion.button>
+            {isCopiedShare ? <Check size={11} /> : <Share2 size={11} />}
+            <span>{isCopiedShare ? "Copied" : "Share"}</span>
+          </button>
         </div>
       </div>
 
-      {/* Panel content */}
+      {/* ── Main Workspace Body (Top Editor/Preview + Resizer + Bottom Terminal) ── */}
       <div
+        ref={containerRef}
         id="right-panel-content"
         style={{
           flex: 1,
@@ -297,61 +341,273 @@ const RightPanel = ({ theme, projectId, socket }) => {
           position: "relative",
         }}
       >
-        {/* Preview / Code */}
-        <div
-          style={{
-            height: `${topHeight}%`,
-            minHeight: "60%",
-            overflow: "hidden",
-            flexShrink: 0,
-          }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2 }}
+        {/* Iframe Shield Overlay during mouse dragging */}
+        {isDragging && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 9999,
+              cursor: "row-resize",
+              background: "transparent",
+            }}
+          />
+        )}
+
+        {/* ── Top Area: Preview or Code (Hidden if Terminal is Maximized) ── */}
+        {!isTerminalMaximized && (
+          <div
+            style={{
+              height: isTerminalOpen ? `${topHeight}%` : "100%",
+              overflow: "hidden",
+              flexShrink: 0,
+              transition: isDragging
+                ? "none"
+                : "height 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+              display: "flex",
+              flexDirection: "column",
+              background: "var(--bg-base)",
+            }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems:
+                    deviceMode === "mobile" && activeTab === "preview"
+                      ? "center"
+                      : "stretch",
+                  justifyContent:
+                    deviceMode === "mobile" && activeTab === "preview"
+                      ? "center"
+                      : "flex-start",
+                  padding:
+                    deviceMode === "mobile" && activeTab === "preview"
+                      ? "16px 0"
+                      : "0",
+                  background:
+                    deviceMode === "mobile" && activeTab === "preview"
+                      ? "#060911"
+                      : "transparent",
+                  overflow: "hidden",
+                }}
+              >
+                {activeTab === "preview" && (
+                  <div
+                    style={{
+                      width: deviceMode === "mobile" ? "390px" : "100%",
+                      height: "100%",
+                      borderRadius: deviceMode === "mobile" ? "16px" : "0",
+                      overflow: "hidden",
+                      border:
+                        deviceMode === "mobile"
+                          ? "1px solid var(--border-default)"
+                          : "none",
+                      boxShadow:
+                        deviceMode === "mobile"
+                          ? "0 12px 48px rgba(0,0,0,0.6)"
+                          : "none",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <PreviewPanel projectId={projectId} />
+                  </div>
+                )}
+
+                {activeTab === "code" && <CodePanel theme={theme} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* ── Fluid Adjustable Divider (Shown when Terminal is Open and not Maximized) ── */}
+        {isTerminalOpen && !isTerminalMaximized && (
+          <div
+            onMouseDown={handleMouseDown}
+            onDoubleClick={handleResetSplit}
+            style={{
+              height: "8px",
+              flexShrink: 0,
+              cursor: "row-resize",
+              background: isDragging ? "var(--gold)" : "var(--bg-surface)",
+              borderTop: "1px solid var(--border-subtle)",
+              borderBottom: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 30,
+              position: "relative",
+              userSelect: "none",
+              transition: "background 0.15s ease",
+            }}
+            title="Drag to resize · Double-click to reset (68/32)"
+          >
+            {/* Grab handle indicator pill */}
+            <div
               style={{
-                width: "100%",
-                height: "100%",
+                width: "36px",
+                height: "3px",
+                borderRadius: "999px",
+                background: isDragging ? "#000" : "var(--gold)",
+                opacity: isDragging ? 0.9 : 0.6,
+                transition: "all 0.15s ease",
+              }}
+            />
+
+            {/* Quick action buttons on divider hover */}
+            <div
+              style={{
+                position: "absolute",
+                right: "12px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
               }}
             >
-              {activeTab === "preview" && (
-                <PreviewPanel projectId={projectId} />
-              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleMaximize();
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: isDragging ? "#000" : "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "1px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Maximize Terminal"
+              >
+                <Maximize2 size={10} />
+              </button>
 
-              {activeTab === "code" && <CodePanel theme={theme} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsTerminalOpen(false);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: isDragging ? "#000" : "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "1px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Collapse Terminal"
+              >
+                <ChevronDown size={11} />
+              </button>
+            </div>
+          </div>
+        )}
 
-        {/* Draggable Divider */}
-        <div
-          onMouseDown={startDragging}
-          style={{
-            height: "6px",
-            flexShrink: 0,
-            cursor: "row-resize",
-            background: isDragging.current
-              ? "var(--gold)"
-              : "var(--border-default)",
-            transition: "background 0.2s",
-            zIndex: 10,
-          }}
-        />
+        {/* ── Bottom Area: Terminal Panel ── */}
+        {isTerminalOpen ? (
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              background: "#0a0e1a",
+              position: "relative",
+            }}
+          >
+            {/* Terminal Top Control Strip if maximized */}
+            {isTerminalMaximized && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "var(--bg-surface)",
+                  borderBottom: "1px solid var(--border-subtle)",
+                  flexShrink: 0,
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                }}
+              >
+                <span style={{ fontWeight: 600, color: "var(--gold)" }}>
+                  Terminal (Maximized)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleMaximize}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--text-primary)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "11px",
+                  }}
+                >
+                  <Minimize2 size={11} />
+                  <span>Restore View</span>
+                </button>
+              </div>
+            )}
 
-        {/* Terminal */}
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflow: "hidden",
-          }}
-        >
-          <TerminalPanel sendCommand={sendCommand} />
-        </div>
+            <TerminalPanel sendCommand={sendCommand} />
+          </div>
+        ) : (
+          /* ── Minimal Bottom Dock when Terminal is Collapsed ── */
+          <div
+            onClick={() => setIsTerminalOpen(true)}
+            style={{
+              height: "28px",
+              flexShrink: 0,
+              background: "var(--bg-surface)",
+              borderTop: "1px solid var(--border-default)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+
+              cursor: "pointer",
+              userSelect: "none",
+              color: "var(--text-muted)",
+              fontSize: "11px",
+              transition: "background 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-elevated)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--bg-surface)";
+              e.currentTarget.style.color = "var(--text-muted)";
+            }}
+            title="Click to expand Terminal"
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <TerminalIcon size={12} style={{ color: "var(--gold)" }} />
+              <span style={{ fontFamily: "var(--font-mono)" }}>Terminal</span>
+              <span style={{ color: "#3d8f5e" }}>● ready</span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span>Show</span>
+              <ChevronUp size={12} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

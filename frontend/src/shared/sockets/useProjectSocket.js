@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { getSocket } from "../sockets/socket";
 import { useDispatch } from "react-redux";
-import { addTerminalMessage } from "../../features/ai/ai.slice";
+import { addTerminalMessage } from "../../features/sandbox/sandbox.slice.js";
 export const useProjectSocket = (projectId) => {
     const [socket, setSocket] = useState(null);
     const dispatch = useDispatch();
@@ -21,20 +21,12 @@ export const useProjectSocket = (projectId) => {
         const onConnectError = (error) => {
             console.error("Socket error:", error.message);
         };
-        let outputBuffer = "";
-        let timeoutId;
+
 
         const handleTerminalOutput = (data) => {
-            outputBuffer += data;
 
-            clearTimeout(timeoutId);
+            dispatch(addTerminalMessage(data));
 
-            timeoutId = setTimeout(() => {
-                if (outputBuffer) {
-                    dispatch(addTerminalMessage(outputBuffer));
-                    outputBuffer = "";
-                }
-            }, 500);
         };
 
         socketInstance.on("connect", onConnect);
