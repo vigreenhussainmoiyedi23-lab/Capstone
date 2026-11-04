@@ -2,10 +2,15 @@
 
 import { io } from "socket.io-client";
 
-export const socket = io(
-    import.meta.env.VITE_AGENT_SOCKET_URL,
-    {
-        autoConnect: false,
-        withCredentials: true
-    }
-);
+export const getSocket = (socketURL) => {
+
+    const socket = io(
+        socketURL,
+        {
+            autoConnect: false,
+            withCredentials: true,
+            transports: ["websocket", "polling"]
+        }
+    );
+    return socket
+} 

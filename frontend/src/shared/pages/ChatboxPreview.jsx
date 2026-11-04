@@ -4,6 +4,9 @@ import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import ChatPanel from "../../features/ai/components/ChatPanel";
 import RightPanel from "../../features/sandbox/components/RightPanel";
+import { useProjectSocket } from "../sockets/useProjectSocket";
+import { useDispatch } from "react-redux";
+import { addTerminalMessage } from "../../features/ai/ai.slice";
 /**
  * App — Root layout for Forge AI Studio
  *
@@ -30,6 +33,8 @@ const ChatboxPreview = () => {
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_PX);
   const [isDragging, setIsDragging] = useState(false);
   const { projectId } = useParams();
+  const dispatch = useDispatch();
+
   /* ── Apply theme to document ── */
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -68,6 +73,9 @@ const ChatboxPreview = () => {
     },
     [chatWidth],
   );
+  // Inside component
+  const socket = useProjectSocket(projectId);
+
 
   return (
     <div
@@ -162,7 +170,7 @@ const ChatboxPreview = () => {
         <div
           style={{ flex: 1, height: "100%", minWidth: 0, overflow: "hidden" }}
         >
-          <RightPanel theme={theme} projectId={projectId} />
+          <RightPanel theme={theme} projectId={projectId} socket={socket}/>
         </div>
       </div>
     </div>

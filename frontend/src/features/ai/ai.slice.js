@@ -15,12 +15,15 @@ const aiSlice = createSlice({
     name: "ai",
     initialState: {
         messages: INITIAL_MESSAGES,
+        terminalMessages: [],
     },
     reducers: {
         addMessage: (state, action) => {
             state.messages.push(action.payload);
         },
-
+        addTerminalMessage: (state, action) => {
+            state.terminalMessages.push(action.payload);
+        },
         appendUpdate: (state, action) => {
             const { id, update } = action.payload;
             const message = state.messages.find((msg) => msg.id === id);
@@ -75,6 +78,9 @@ const aiSlice = createSlice({
         resetToInitial: (state) => {
             state.messages = INITIAL_MESSAGES;
         },
+        clearTerminalMessages: (state) => {
+            state.terminalMessages = [];
+        },
     },
 });
 
@@ -86,6 +92,8 @@ export const {
     setError,
     clearMessages,
     resetToInitial,
+    addTerminalMessage,
+    clearTerminalMessages,
 } = aiSlice.actions;
 
 export const AIReducer = aiSlice.reducer;

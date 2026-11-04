@@ -62,9 +62,16 @@ const TABS = [
 /**
  * RightPanel — Tab switcher for Preview / Code / Terminal
  */
-const RightPanel = ({ theme, projectId }) => {
+const RightPanel = ({ theme, projectId, socket }) => {
   const [activeTab, setActiveTab] = useState("preview");
-
+  const sendCommand = (command) => {
+    if (!socket?.connected) {
+      console.error("Socket is not connected");
+      return;
+    }
+    socket.emit("terminal-input", command);
+    dispatch(addTerminalMessage(command));
+  };
   return (
     <div
       style={{
@@ -251,8 +258,10 @@ const RightPanel = ({ theme, projectId }) => {
             style={{ width: "100%", height: "100%" }}
           >
             {activeTab === "preview" && <PreviewPanel projectId={projectId} />}
-            {activeTab === "code" && <CodePanel theme={theme} />}
-            {activeTab === "terminal" && <TerminalPanel />}
+            {activeTab === "code" && (
+              <CodePanel theme={theme}  />
+            )}
+            {activeTab === "terminal" && <TerminalPanel sendCommand={sendCommand} />}
           </motion.div>
         </AnimatePresence>
       </div>
