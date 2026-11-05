@@ -32,15 +32,10 @@ const ChatboxPreview = () => {
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_PX);
   const [isDragging, setIsDragging] = useState(false);
   const { projectId } = useParams();
-  const { getAllFiles } = useSandbox();
   /* ── Apply theme to document ── */
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
-  useEffect(() => {
-    if (!projectId) return;
-    getAllFiles(projectId);
-  }, [projectId]);
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === "dark" ? "light" : "dark"));

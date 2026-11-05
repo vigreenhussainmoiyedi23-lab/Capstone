@@ -9,24 +9,28 @@ export const getAPIBaseUrl = (projectId) => {
 * Agent API — List all files in the /workspace directory.
 */
 export const listWorkspaceFiles = async (projectId) => {
-    
-    const baseUrl = getAPIBaseUrl(projectId);
-    const res = await api.get(`${baseUrl}/list-files`);
-    if (!res.ok) throw new Error(`Failed to list files: ${res.status}`);
-    return await res.json(); // { files: string[] }
+    try {
+
+        const baseUrl = getAPIBaseUrl(projectId);
+        const res = await api.get(`${baseUrl}/list-files`);
+        return res.data // { files: string[] }
+    } catch (error) {
+        throw error
+    }
 };
 
 /**
  * Agent API — Read contents of specified files.
  */
 export const readWorkspaceFiles = async (projectId, files = []) => {
-    const baseUrl = getAPIBaseUrl(projectId);
-    const filesParam = encodeURIComponent(Array.isArray(files) ? files.join(",") : files);
-    const res = await api.get(`${baseUrl}/read-files?files=${filesParam}`);
-    if (!res.ok) throw new Error(`Failed to read files: ${res.status}`);
-    return await res.json(); // [ { [filePath]: content } ]
-};
-
+    try {
+        const baseUrl = getAPIBaseUrl(projectId);
+        const res = await api.get(`${baseUrl}/read-files?files=${files.join(",")}`);
+        return res.data // { files: string[] }
+    } catch (error) {
+        throw error
+    }
+}
 /**
  * Agent API — Update files in /workspace.
  */

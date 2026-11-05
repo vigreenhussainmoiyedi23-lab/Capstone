@@ -1,37 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import {
+  ChevronRight,
+  ChevronDown,
+  Folder,
+  FolderOpen,
+  FileCode,
+  FileJson,
+  FileType,
+  File,
+  RefreshCw,
+  Copy
+} from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { useSelector } from "react-redux";
-import { FileCode, RefreshCw, Copy, Check } from "lucide-react";
 import {
   listWorkspaceFiles,
   readWorkspaceFiles,
 } from "../services/agent.api";
+import { useParams } from "react-router-dom";
+import { useSandbox } from "../hooks/useSandbox";
 
-/* ── Fallback code files when workspace is offline ── */
-const DEFAULT_CODE = {
-  "src/App.jsx": {
-    language: "jsx",
-    code: `import React from 'react';\n\nexport default function App() {\n  return (\n    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">\n      <h1 className="text-3xl font-bold">Forge AI Workspace</h1>\n    </div>\n  );\n}`,
-  },
-  "package.json": {
-    language: "json",
-    code: `{\n  "name": "sandbox-app",\n  "private": true,\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  }\n}`,
-  },
-};
 
-const getLanguageFromFile = (filename = "") => {
-  if (filename.endsWith(".jsx")) return "jsx";
-  if (filename.endsWith(".js") || filename.endsWith(".mjs"))
-    return "javascript";
-  if (filename.endsWith(".tsx")) return "tsx";
-  if (filename.endsWith(".ts")) return "typescript";
-  if (filename.endsWith(".html")) return "html";
-  if (filename.endsWith(".css")) return "css";
-  if (filename.endsWith(".json")) return "json";
-  if (filename.endsWith(".md")) return "markdown";
-  return "text";
-};
+
 
 /**
  * Dark theme for syntax highlighter
@@ -59,62 +50,185 @@ const FORGE_THEME = {
   function: { color: "#dcdcaa" },
   variable: { color: "#9cdcfe" },
 };
+const buildFileTree = (files) => {
+  const root = new Map();
 
+  files.forEach((filePath) => {
+    const cleanPath = filePath
+      .replace("/workspace/", "")
+      .replace("/workspace", "");
+
+    const parts = cleanPath.split("/").filter(Boolean);
+
+    let current = root;
+
+    parts.forEach((part, index) => {
+      const isFile = index === parts.length - 1;
+
+      if (!current.has(part)) {
+        current.set(
+          part,
+          isFile
+            ? { type: "file", path: cleanPath }
+            : { type: "folder", children: new Map() }
+        );
+      }
+
+      if (!isFile) {
+        current = current.get(part).children;
+      }
+    });
+  });
+
+  return root;
+};
 /**
  * CodePanel — Displays real files from agent /workspace via agentUrl
  */
 const CodePanel = ({ theme = "dark" }) => {
-  const sandbox = useSelector((state) => state.sandbox);
-  const agentUrl = sandbox?.agentUrl;
-
-  const [filesMap, setFilesMap] = useState(DEFAULT_CODE);
+  const { projectId } = useParams()
+  const { fetchFiles, getFileContent } = useSandbox()
+  const allTerminalFiles = useSelector((state) => state.sandbox.allFiles)
+  const codeFiles = useSelector((state) => state.sandbox.codeFiles)
   const [activeFile, setActiveFile] = useState("src/App.jsx");
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [fileList, setFileList] = useState(new Map());
+  const [expandedFolders, setExpandedFolders] = useState(new Set(["root"]));
+  const [contentToBeShown, setContentToBeShown] = useState("")
+  const toggleFolder = (path) => {
+    setExpandedFolders((prev) => {
+      const updated = new Set(prev);
 
-  const fetchFiles = useCallback(async () => {
-    if (!agentUrl) return;
-    setIsLoading(true);
-    try {
-      const { files } = await listWorkspaceFiles(agentUrl);
-      if (Array.isArray(files) && files.length > 0) {
-        // Fetch contents for first few files
-        const filesToFetch = files.slice(0, 10);
-        const contentsList = await readWorkspaceFiles(agentUrl, filesToFetch);
-
-        const newMap = {};
-        contentsList.forEach((item) => {
-          const [fullPath, content] = Object.entries(item)[0];
-          // Strip /workspace/
-          const relativeName = fullPath
-            .replace("/workspace/", "")
-            .replace("/workspace", "");
-          newMap[relativeName] = {
-            language: getLanguageFromFile(relativeName),
-            code: content,
-          };
-        });
-
-        if (Object.keys(newMap).length > 0) {
-          setFilesMap(newMap);
-          if (!newMap[activeFile]) {
-            setActiveFile(Object.keys(newMap)[0]);
-          }
-        }
+      if (updated.has(path)) {
+        updated.delete(path);
+      } else {
+        updated.add(path);
       }
-    } catch (err) {
-      console.error("Error fetching workspace files:", err);
-    } finally {
-      setIsLoading(false);
+
+      return updated;
+    });
+  };
+
+  const getFileIcon = (name) => {
+    const ext = name.split(".").pop()?.toLowerCase();
+
+    const icons = {
+      jsx: <FileCode size={15} color="#61dafb" />,
+      tsx: <FileCode size={15} color="#3178c6" />,
+      js: <FileCode size={15} color="#e8d44d" />,
+      ts: <FileCode size={15} color="#3178c6" />,
+      json: <FileJson size={15} color="#dcb67a" />,
+      css: <FileType size={15} color="#42a5f5" />,
+      html: <FileCode size={15} color="#e44d26" />,
+      md: <File size={15} color="#8b9bb4" />,
+    };
+
+    return icons[ext] || <File size={15} color="#a0a0a0" />;
+  };
+
+  const renderTree = (tree, parentPath = "", depth = 0) => {
+    return Array.from(tree.entries()).map(([name, node]) => {
+      const fullPath = parentPath
+        ? `${parentPath}/${name}`
+        : name;
+
+      const isFolder = node.type === "folder";
+      const isExpanded = expandedFolders.has(fullPath);
+      const isActive = activeFile === node.path;
+
+      return (
+        <div key={fullPath}>
+          <button
+            type="button"
+            onClick={() =>
+              isFolder
+                ? toggleFolder(fullPath)
+                : openFile(node.path)
+            }
+            className="hover:bg-obsidian-500!  w-full flex items-center h-[23px] text-left text-[0.06] transition-colors"
+            style={{
+              paddingLeft: `${8 + depth * 12}px`,
+              paddingRight: "8px",
+              background: isActive
+                ? "var(--color-obsidian-400)"
+                : "transparent",
+              color: isActive
+                ? "#ffffff"
+                : "#cccccc",
+            }}
+          >
+            {isFolder ? (
+              <>
+                {isExpanded ? (
+                  <ChevronDown size={14} className="text-[#858585] shrink-0" />
+                ) : (
+                  <ChevronRight size={14} className="text-[#858585] shrink-0" />
+                )}
+
+                {isExpanded ? (
+                  <FolderOpen
+                    size={15}
+                    color="#dcb67a"
+                    className="mx-1.5 shrink-0"
+                  />
+                ) : (
+                  <Folder
+                    size={15}
+                    color="#dcb67a"
+                    className="mx-1.5 shrink-0"
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <span className="w-[14px] shrink-0" />
+                <span className="mx-1.5 shrink-0">
+                  {getFileIcon(name)}
+                </span>
+              </>
+            )}
+
+            <span className="truncate">{name}</span>
+          </button>
+
+          {isFolder && isExpanded && (
+            <div>
+              {renderTree(node.children, fullPath, depth + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+  const openFile = async (path) => {
+    setActiveFile(path)
+    if (codeFiles[path]) {
+      setContentToBeShown(codeFiles[path])
+    } else {
+      const content = await getFileContent({ path, projectId })
+      setContentToBeShown(content)
     }
-  }, [agentUrl, activeFile]);
+
+  }
 
   useEffect(() => {
-    fetchFiles();
+    if (!allTerminalFiles?.length) {
+      setFileList(new Map());
+      return;
+    }
+
+    setFileList(buildFileTree(allTerminalFiles));
+  }, [allTerminalFiles]);
+
+
+
+  useEffect(() => {
+    if (!projectId) return
+    fetchFiles(projectId);
   }, [fetchFiles]);
 
-  const fileKeys = Object.keys(filesMap);
-  const currentFile = filesMap[activeFile] || {
+  const currentFile = {
     language: "text",
     code: "// File empty or loading...",
   };
@@ -131,7 +245,7 @@ const CodePanel = ({ theme = "dark" }) => {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         overflow: "hidden",
         background: "var(--bg-base)",
       }}
@@ -139,56 +253,27 @@ const CodePanel = ({ theme = "dark" }) => {
       {/* File Tabs */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "0 12px",
           gap: "2px",
+          overflowY: "auto",
           background: "var(--bg-surface)",
           borderBottom: "1px solid var(--border-subtle)",
-          flexShrink: 0,
-          overflowX: "auto",
+          width: "20%"
         }}
       >
-        {fileKeys.map((file) => {
-          const isActive = activeFile === file;
-          return (
-            <button
-              key={file}
-              onClick={() => setActiveFile(file)}
-              type="button"
-              style={{
-                padding: "8px 12px",
-                background: isActive ? "var(--bg-elevated)" : "transparent",
-                border: "none",
-                borderBottom: `2px solid ${isActive ? "var(--gold)" : "transparent"}`,
-                color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                fontSize: "11px",
-                fontWeight: isActive ? 600 : 400,
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-                whiteSpace: "nowrap",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <FileCode
-                size={11}
-                style={{
-                  color: isActive ? "var(--gold)" : "var(--text-muted)",
-                }}
-              />
-              {file}
-            </button>
-          );
-        })}
+        <div className="w-full h-full ">
+          <h3 className="bg-navy-900 p-1.25 text-center">Explorer</h3>
+
+          <div className=" w-full mt-5">
+            {renderTree(fileList)}
+          </div>
+        </div>
 
         <div style={{ flex: 1 }} />
 
         {/* Refresh Files Button */}
-        {agentUrl && (
+        {projectId && (
           <button
-            onClick={fetchFiles}
+            onClick={() => fetchFiles(projectId)}
             type="button"
             disabled={isLoading}
             style={{
@@ -261,32 +346,32 @@ const CodePanel = ({ theme = "dark" }) => {
           }}
           wrapLongLines={false}
         >
-          {currentFile.code}
+          {contentToBeShown}
         </SyntaxHighlighter>
+        {/* Footer Info */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "4px 14px",
+            background: "var(--bg-surface)",
+            borderTop: "1px solid var(--border-subtle)",
+            flexShrink: 0,
+            fontSize: "10px",
+            color: "var(--text-muted)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          <span>{currentFile.language.toUpperCase()}</span>
+          <span>{currentFile.code.split("\n").length} lines</span>
+          <div style={{ flex: 1 }} />
+          <span style={{ color: projectId ? "#3d8f5e" : "var(--gold)" }}>
+            {projectId ? "● Connected to /workspace" : "Local Workspace"}
+          </span>
+        </div>
       </div>
 
-      {/* Footer Info */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          padding: "4px 14px",
-          background: "var(--bg-surface)",
-          borderTop: "1px solid var(--border-subtle)",
-          flexShrink: 0,
-          fontSize: "10px",
-          color: "var(--text-muted)",
-          fontFamily: "var(--font-mono)",
-        }}
-      >
-        <span>{currentFile.language.toUpperCase()}</span>
-        <span>{currentFile.code.split("\n").length} lines</span>
-        <div style={{ flex: 1 }} />
-        <span style={{ color: agentUrl ? "#3d8f5e" : "var(--gold)" }}>
-          {agentUrl ? "● Connected to /workspace" : "Local Workspace"}
-        </span>
-      </div>
     </div>
   );
 };
