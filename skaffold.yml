@@ -27,7 +27,7 @@ build:
     - image: agent
       context: sandbox/agent
       docker:
-        dockerfile: dockerfile
+        dockerfile: dockerfile.dev
       sync:
         infer:
           - "src/**"

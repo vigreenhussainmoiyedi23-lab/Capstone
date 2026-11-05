@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use((req, res, next) => {
     console.log("INCOMING REQUEST:", req.method, req.url);
     console.log("ORIGIN:", req.headers.origin);
+    console.log("hihi hi hihi ")
     next();
 });
 app.use(cors({
