@@ -14,7 +14,7 @@ import {
   logoutAllController,
 } from "../controllers/auth.controller.js";
 import passport from "passport";
-import { authLimiter, otpLimiter } from "../Limiters/auth.limiters.js";
+import { authLimiter, otpLimiter } from "../limiters/auth.limiters.js";
 import {
   loginValidator,
   registerValidator,

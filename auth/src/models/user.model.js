@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import { Schema, model } from "mongoose";
 
 const userSchema = new Schema({
     googleId: {
@@ -17,5 +17,5 @@ const userSchema = new Schema({
 });
 userSchema.index({ email: 1 }, { unique: true });
 
-const userModel = mongoose.model("user", userSchema);
+const userModel = model("user", userSchema);
 export default userModel
