@@ -5,22 +5,21 @@ import {
   authStart,
   authFailure,
   authSuccess,
+  setAccessToken,
 } from "../authSlice.js";
 
-import {
-  GetUserAPI,
-  refreshTokenApi,
-} from "../service/api.service.js";
+import { GetUserAPI, refreshTokenApi } from "../service/api.service.js";
 
 const REFRESH_INTERVAL = 14 * 60 * 1000;
 
-// Prevent duplicate refresh cycles in React StrictMode.
 let authPromise = null;
 
-const restoreSession = async () => {
+const restoreSession = async (dispatch) => {
   if (!authPromise) {
     authPromise = (async () => {
       const tokenResponse = await refreshTokenApi();
+      console.log(tokenResponse);
+      dispatch(setAccessToken(tokenResponse.accessToken));
 
       const userResponse = await GetUserAPI();
 
@@ -35,7 +34,6 @@ const restoreSession = async () => {
 
   return authPromise;
 };
-
 const AuthInitializer = () => {
   const dispatch = useDispatch();
 
@@ -49,7 +47,7 @@ const AuthInitializer = () => {
       }
 
       try {
-        const { user, accessToken } = await restoreSession();
+        const { user, accessToken } = await restoreSession(dispatch);
 
         if (!mounted) return;
 

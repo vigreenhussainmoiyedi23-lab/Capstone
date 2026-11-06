@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
     otp: { type: String },
     otpExpiresIn: { type: Date, expires: 0, default: null },
     authMethod: { type: String, enum: ["email", "google"], default: "email" },
-    role: { type: String, enum: ["user", "admin", "seller"], default: "user" },
+    role: { type: String, enum: ["user", "admin"], default: "user" },
 });
 
 // validating and hashing password

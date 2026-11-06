@@ -57,6 +57,7 @@ build:
 # ── Manifests ──────────────────────────────────────
 manifests:
   rawYaml:
+    # - k8s/*.yml
     - k8s/sandbox-deployment.yml
     - k8s/sandbox-service.yml
     - k8s/router-deployment.yml
@@ -66,5 +67,7 @@ manifests:
     - k8s/ingress.yml
     - k8s/auth-deployment.yml
     - k8s/auth-service.yml
+    - k8s/secrets.*.yml
+    - k8s/rbac.*.yml
 
 # ── Port Forwarding ────────────────────────────────

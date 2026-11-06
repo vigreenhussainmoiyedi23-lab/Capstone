@@ -41,13 +41,7 @@ function isERROR(error) {
 export const useAuth = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const initializeAuth = async () => {
-    try {
-      refreshTokenHand1er();
-    } catch {
-      dispatch(authFailure(""));
-    }
-  };
+
   const loginHandler = async (data) => {
     dispatch(authStart());
     const id = toast.loading("Logging in...");
@@ -276,6 +270,6 @@ export const useAuth = () => {
     forgotHandler,
     resetPasswordHandler,
     changePasswordHandler,
-    initializeAuth,
+    
   };
 };
