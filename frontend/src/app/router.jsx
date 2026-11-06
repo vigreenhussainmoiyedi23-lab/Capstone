@@ -1,6 +1,13 @@
 import { createBrowserRouter, Outlet } from "react-router-dom";
-import ChatboxPreview from "../shared/pages/ChatboxPreview";
-
+import ChatboxPreview from "../shared/pages/ChatboxPreview.jsx";
+import Login from "../features/auth copy/pages/Login.jsx";
+import Register from "../features/auth copy/pages/Register.jsx";
+import VerifyOtp from "../features/auth copy/pages/VerifyOtp.jsx";
+import GoogleSuccess from "../features/auth copy/pages/GoogleSuccess.jsx";
+import ForgotPassword from "../features/auth copy/pages/ForgotPassword.jsx";
+import ChangePassword from "../features/auth copy/pages/ChangePassword.jsx";
+import ResetPassword from "../features/auth copy/pages/ResetPassword.jsx";
+import ProtectedLayout from "../layouts/ProtectedLayout.jsx";
 // 1. Define dummy components for demonstration
 const Layout = () => (
   <div>
@@ -31,6 +38,39 @@ const routesConfiguration = [
       {
         path: "settings", // Relative path resolves to "/settings"
         element: <Settings />,
+      },
+      /* --- Auth Routes --- */
+      {
+        path: "/login",
+        element: <Login />,
+      },
+      {
+        path: "/register",
+        element: <Register />,
+      },
+      {
+        path: "/verifyOtp",
+        element: <VerifyOtp />,
+      },
+      {
+        path: "/auth/google/success",
+        element: <GoogleSuccess />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "/change-password",
+        element: (
+          <ProtectedLayout>
+            <ChangePassword />
+          </ProtectedLayout>
+        ),
+      },
+      {
+        path: "/reset-password/:token",
+        element: <ResetPassword />,
       },
     ],
   },

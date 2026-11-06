@@ -1,11 +1,14 @@
-import dotenv from "dotenv";
-import { ConnectToDB } from "./src/config/db.js";
+
+import { config } from "./src/config/config.js";
+
 import app from "./src/app.js";
 
-dotenv.config();
+import { ConnectToDB } from "./src/config/db.js";
+import { connectRedis } from "./src/config/redis.js";
+
 await ConnectToDB();
+await connectRedis();
 
-
-app.listen(3000, () => {
-    console.log(`Server is running on port 3000`);
+app.listen(config.PORT, () => {
+    console.log(`Server is running on port ${config.PORT}`);
 });

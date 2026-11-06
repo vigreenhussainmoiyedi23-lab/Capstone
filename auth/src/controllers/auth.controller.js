@@ -125,8 +125,10 @@ export const loginController = asyncHandler(async (req, res) => {
 
 export const googleController = asyncHandler(async (req, res) => {
     const {
-        _json: { email, name },
-    } = req.user ;
+        _json: { email, name, picture, ...rest },
+    } = req.user;
+    console.log(rest);
+
     const isUserExist = await userModel.findOne({ email });
     let refreshToken, accessToken;
     if (isUserExist) {
@@ -141,6 +143,7 @@ export const googleController = asyncHandler(async (req, res) => {
             email,
             username: name,
             isVerified: true,
+            profilePicture: picture,
         });
         // assigning accessToken,refreshToken values
         ({ refreshToken, accessToken } = await CreateTokensAndSession({

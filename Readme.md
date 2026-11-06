@@ -7,6 +7,9 @@ To START THE KUBERNETES CLUSTER TO WORK
 - SET ENV VARIABLES OF AI-ORCHESTRATION BY MAKING A .env file AND THAN RUN THIS COMMAND
   `cd ai-orchestration`
   `kubectl create secret generic ai-env  --from-env-file=.env  --dry-run=client -o yaml | kubectl apply -f -`
+- SET ENV VARIABLES OF Auth BY MAKING A .env file AND THAN RUN THIS COMMAND
+  `cd ../auth`
+  `kubectl create secret generic auth-env  --from-env-file=.env  --dry-run=client -o yaml | kubectl apply -f -`
 - AFTER THAT JUST RUN THIS COMMANDS
   `cd ..`
   `kubectl apply -f ./k8s`

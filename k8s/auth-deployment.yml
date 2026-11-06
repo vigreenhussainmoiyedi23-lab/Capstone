@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+  labels:
+    name: auth-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      containers:
+        - image: auth:latest
+          imagePullPolicy: IfNotPresent
+          name: auth-container
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+            requests:
+              cpu: "250m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /status/healthz
+              port: 3000
+            initialDelaySeconds: 90
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status/readyz
+              port: 3000
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+          envFrom:
+            - secretRef:
+                name: auth-env
+          ports:
+            - containerPort: 3000
+              name: auth-port
