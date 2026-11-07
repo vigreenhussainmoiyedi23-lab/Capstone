@@ -39,7 +39,29 @@ spec:
             timeoutSeconds: 10
           envFrom:
             - secretRef:
-                name: auth-env
+                name: google
+
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt
+                  key: JWT_SECRET
+            - name: AUTH_MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: database
+                  key: AUTH_MONGO_URI
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database
+                  key: REDIS_URL
+            - name: FRONTEND_URL
+              valueFrom:
+                secretKeyRef:
+                  name: urls
+                  key: FRONTEND_URL
           ports:
             - containerPort: 3000
               name: auth-port
