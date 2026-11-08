@@ -12,7 +12,7 @@ export const createService = async (sandboxId) => {
             selector: {
                 sandboxId: sandboxId,
             },
-            ports: [ 
+            ports: [
                 {
                     name: "http",
                     port: 80,
@@ -30,5 +30,12 @@ export const createService = async (sandboxId) => {
     };
 
     const response = await k8sCoreV1Api.createNamespacedService({ namespace: "default", body: serviceManifest });
+    return response;
+}
+
+export async function deleteService(sandboxId) {
+    const response = await k8sCoreV1Api.deleteNamespacedService({
+        namespace: "default", name: `sandbox-service-${sandboxId}`
+    });
     return response;
 }
