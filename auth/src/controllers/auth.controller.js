@@ -19,7 +19,7 @@ import { redis } from "../config/redis.js";
 import { sendAuthNotification } from "../config/mq.js";
 import { html } from "../constants/htmlForGmail.js";
 
-export const registerController = asyncHandler(async (req, res) => {
+export const htmlsterController = asyncHandler(async (req, res) => {
     const { username, email, password, role } = req.body;
     const isUserExist = await userModel.findOne({ email });
     if (role === "admin") {
@@ -57,7 +57,7 @@ export const registerController = asyncHandler(async (req, res) => {
     await sendAuthNotification({
         email: newUser.email,
         action: "register_otp",
-        message: emailHtml,
+        html: emailHtml,
 
     })
     await SendEmail({
@@ -98,7 +98,7 @@ export const resendOtpHandler = asyncHandler(async (req, res) => {
     await sendAuthNotification({
         email: isUserExist.email,
         action: "register_resend_otp",
-        message: emailHtml,
+        html: emailHtml,
     })
 
     await SendEmail({
@@ -149,7 +149,7 @@ export const loginController = asyncHandler(async (req, res) => {
     await sendAuthNotification({
         email: isUserExist.email,
         action: "login_success",
-        message: emailHtml,
+        html: emailHtml,
     })
     sendSecureCookie(res, "refreshToken", refreshToken, 7 * 24 * 60 * 60 * 1000); // {res,name,value,maxAgeInMs}
     res.status(200).json({ message: "Login successful", accessToken, user });
@@ -176,12 +176,11 @@ export const googleController = asyncHandler(async (req, res) => {
             time: new Date().toLocaleString(),
             browser: req.headers["user-agent"] ?? "unknown",
             device: req.headers["user-agent"] ?? "unknown",
-            location: req.headers["user-agent"] ?? "unknown",
         });
         await sendAuthNotification({
             email: isUserExist.email,
             action: "login_success",
-            message: emailHtml,
+            html: emailHtml,
         })
     } else {
         const newUser = await createUser({
@@ -196,7 +195,7 @@ export const googleController = asyncHandler(async (req, res) => {
         await sendAuthNotification({
             email: isUserExist.email,
             action: "login_success",
-            message: emailHtml,
+            html: emailHtml,
         })
             // assigning accessToken,refreshToken values
             ({ refreshToken, accessToken } = await CreateTokensAndSession({

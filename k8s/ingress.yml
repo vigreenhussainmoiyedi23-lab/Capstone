@@ -39,6 +39,15 @@ spec:
     - http:
         paths:
           - pathType: Prefix
+            path: "/api/notification"
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 80
+    - http:
+        paths:
+          - pathType: Prefix
             path: "/api/auth"
             backend:
               service:

@@ -1,7 +1,7 @@
 import express from "express"
 import morgan from "morgan"
-import SendEmail from "./utils/sendEmail"
-import { channel } from "diagnostics_channel"
+import SendEmail from "./utils/sendEmail.js"
+import channel from "./config/mq.js"
 const app = express()
 
 app.use(morgan("dev"))
@@ -19,8 +19,8 @@ channel.consume("auth_notification_queue", async (msg) => {
         const messageContent = JSON.parse(msg.content.toString())
         console.log("Received message : ", messageContent);
         try {
-            const { to, subject, html, text } = messageContent
-            await SendEmail({ to, subject, text, html })
+            const { email, action, html } = messageContent
+            await SendEmail({ to: email, subject: action.split("_").join(" "), html })
             channel.ack(msg)
         } catch (error) {
             console.error(error);

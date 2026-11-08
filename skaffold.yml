@@ -53,6 +53,13 @@ build:
       sync:
         infer:
           - "src/**"
+    - image: notification
+      context: notification
+      docker:
+        dockerfile: dockerfile.dev
+      sync:
+        infer:
+          - "src/**"
 
 # ── Manifests ──────────────────────────────────────
 manifests:
@@ -69,5 +76,7 @@ manifests:
     - k8s/auth-service.yml
     - k8s/secrets.*.yml
     - k8s/rbac.*.yml
+    - k8s/notification-deployment.yml
+    - k8s/notification-service.yml
 
 # ── Port Forwarding ────────────────────────────────
