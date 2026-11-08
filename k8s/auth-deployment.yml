@@ -62,6 +62,11 @@ spec:
                 secretKeyRef:
                   name: urls
                   key: FRONTEND_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database
+                  key: RABBITMQ_URL
           ports:
             - containerPort: 3000
               name: auth-port

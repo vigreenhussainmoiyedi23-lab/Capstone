@@ -1,0 +1,6 @@
+import "dotenv/config"
+import app from "./src/app";
+
+app.listen(3000, () => {
+    console.log("Notification service is running on port 4000");
+});

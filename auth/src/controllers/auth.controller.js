@@ -16,6 +16,8 @@ import asyncHandler from "../utils/AsyncHandler.js";
 import AppError from "../utils/AppError.js";
 import { config } from "../config/config.js";
 import { redis } from "../config/redis.js";
+import { sendAuthNotification } from "../config/mq.js";
+import { html } from "../constants/htmlForGmail.js";
 
 export const registerController = asyncHandler(async (req, res) => {
     const { username, email, password, role } = req.body;
@@ -45,10 +47,19 @@ export const registerController = asyncHandler(async (req, res) => {
     res
         .status(201)
         .json({ message: "Verifification OTP has been sent", success: true });
-    const html = `
-  <h1 style="text-align: center;">Verification OTP</h1>
-  <h1 style="text-align: center;">${otp}</h1>
-  `;
+
+    let emailHtml = html.registerOtp({
+        otp: otp,
+        userName: newUser.username,
+        expiresInMinutes: 10
+    });
+
+    await sendAuthNotification({
+        email: newUser.email,
+        action: "register_otp",
+        message: emailHtml,
+
+    })
     await SendEmail({
         to: email,
         subject: "Verification OTP",
@@ -63,7 +74,7 @@ export const resendOtpHandler = asyncHandler(async (req, res) => {
     if (!decoded._id || !decoded) {
         throw new AppError("Invalid token", 400);
     }
-    const isUserExist = await userModel.findById(decoded._id);
+    const isUserExist = await userModel.findById(decoded._id).select("username email");
     if (!isUserExist) {
         throw new AppError("User does not exist", 400);
     }
@@ -78,14 +89,22 @@ export const resendOtpHandler = asyncHandler(async (req, res) => {
 
     isUserExist.otp = otp;
     await isUserExist.save();
-    const html = `
-  <h1 style="text-align: center;">New Verification OTP</h1>
-  <h1 style="text-align: center;">${otp}</h1>
-  `;
+    let emailHtml = html.resendOtp({
+        otp: otp,
+        userName: isUserExist.username,
+        expiresInMinutes: 10
+    });
+
+    await sendAuthNotification({
+        email: isUserExist.email,
+        action: "register_resend_otp",
+        message: emailHtml,
+    })
+
     await SendEmail({
         to: isUserExist.email,
         subject: "Verification OTP",
-        html,
+        html: emailHtml,
     });
     res
         .status(201)
@@ -119,15 +138,28 @@ export const loginController = asyncHandler(async (req, res) => {
         ip: req.ip ?? "unknown",
         userAgent: req.headers["user-agent"] ?? "unknown",
     });
+    const emailHtml = html.newLogin({
+        userName: isUserExist.username,
+        ip: req.ip ?? "unknown",
+        time: new Date().toLocaleString(),
+        browser: req.headers["user-agent"] ?? "unknown",
+        device: req.headers["user-agent"] ?? "unknown",
+        location: req.headers["user-agent"] ?? "unknown",
+    });
+    await sendAuthNotification({
+        email: isUserExist.email,
+        action: "login_success",
+        message: emailHtml,
+    })
     sendSecureCookie(res, "refreshToken", refreshToken, 7 * 24 * 60 * 60 * 1000); // {res,name,value,maxAgeInMs}
     res.status(200).json({ message: "Login successful", accessToken, user });
+
 });
 
 export const googleController = asyncHandler(async (req, res) => {
     const {
         _json: { email, name, picture, ...rest },
     } = req.user;
-    console.log(rest);
 
     const isUserExist = await userModel.findOne({ email });
     let refreshToken, accessToken;
@@ -138,6 +170,19 @@ export const googleController = asyncHandler(async (req, res) => {
             ip: req.ip ?? "unknown",
             userAgent: req.headers["user-agent"] ?? "unknown",
         }));
+        const emailHtml = html.newLogin({
+            userName: isUserExist.username,
+            ip: req.ip ?? "unknown",
+            time: new Date().toLocaleString(),
+            browser: req.headers["user-agent"] ?? "unknown",
+            device: req.headers["user-agent"] ?? "unknown",
+            location: req.headers["user-agent"] ?? "unknown",
+        });
+        await sendAuthNotification({
+            email: isUserExist.email,
+            action: "login_success",
+            message: emailHtml,
+        })
     } else {
         const newUser = await createUser({
             email,
@@ -145,12 +190,20 @@ export const googleController = asyncHandler(async (req, res) => {
             isVerified: true,
             profilePicture: picture,
         });
-        // assigning accessToken,refreshToken values
-        ({ refreshToken, accessToken } = await CreateTokensAndSession({
-            _id: newUser._id.toString(),
-            ip: req.ip ?? "unknown",
-            userAgent: req.headers["user-agent"] ?? "unknown",
-        }));
+        const emailHtml = html.welcome({
+            userName: isUserExist.username
+        });
+        await sendAuthNotification({
+            email: isUserExist.email,
+            action: "login_success",
+            message: emailHtml,
+        })
+            // assigning accessToken,refreshToken values
+            ({ refreshToken, accessToken } = await CreateTokensAndSession({
+                _id: newUser._id.toString(),
+                ip: req.ip ?? "unknown",
+                userAgent: req.headers["user-agent"] ?? "unknown",
+            }));
     }
 
     sendSecureCookie(res, "refreshToken", refreshToken, 24 * 60 * 60 * 1000);
