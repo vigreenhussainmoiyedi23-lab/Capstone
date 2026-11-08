@@ -173,11 +173,9 @@ export const html = {
   newLogin: ({
     userName,
     device,
-    browser,
-    location,
     ip,
     time,
-    secureAccountLink,
+    ...rest
   }) =>
     layout({
       title: "New login to your account",
@@ -192,8 +190,6 @@ export const html = {
               ${detailRows([
         ["Time", time],
         ["Device", device],
-        ["Browser", browser],
-        ["Location", location],
         ["IP address", ip],
       ])}
             </table>

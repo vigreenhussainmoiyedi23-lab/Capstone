@@ -10,7 +10,6 @@ import { createUser } from "../services/userCRUD.service.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import sessionModel from "../models/session.model.js";
-import SendEmail from "../utils/sendOtp.js";
 import { hashToken } from "../utils/crypto.util.js";
 import asyncHandler from "../utils/AsyncHandler.js";
 import AppError from "../utils/AppError.js";
@@ -19,7 +18,7 @@ import { redis } from "../config/redis.js";
 import { sendAuthNotification } from "../config/mq.js";
 import { html } from "../constants/htmlForGmail.js";
 
-export const htmlsterController = asyncHandler(async (req, res) => {
+export const registerController = asyncHandler(async (req, res) => {
     const { username, email, password, role } = req.body;
     const isUserExist = await userModel.findOne({ email });
     if (role === "admin") {
@@ -60,11 +59,7 @@ export const htmlsterController = asyncHandler(async (req, res) => {
         html: emailHtml,
 
     })
-    await SendEmail({
-        to: email,
-        subject: "Verification OTP",
-        html,
-    });
+
 });
 
 export const resendOtpHandler = asyncHandler(async (req, res) => {
@@ -101,11 +96,7 @@ export const resendOtpHandler = asyncHandler(async (req, res) => {
         html: emailHtml,
     })
 
-    await SendEmail({
-        to: isUserExist.email,
-        subject: "Verification OTP",
-        html: emailHtml,
-    });
+
     res
         .status(201)
         .json({ message: "Verifification OTP has been sent", success: true });
@@ -246,7 +237,14 @@ export const verifyOtpController = asyncHandler(async (req, res) => {
         ip: req.ip ?? "unknown",
         userAgent: req.headers["user-agent"] ?? "unknown",
     });
-
+    const emailHtml = html.welcome({
+        userName: isUserExist.username
+    });
+    await sendAuthNotification({
+        email: isUserExist.email,
+        action: "login_success",
+        html: emailHtml,
+    })
     sendSecureCookie(res, "refreshToken", refreshToken, 7 * 24 * 60 * 60 * 1000); // {res,name,value,maxAgeInMs}
     res.status(200).json({ message: "OTP verified successfully", accessToken });
 });
@@ -387,11 +385,12 @@ export const forgetPasswordController = asyncHandler(async (req, res) => {
 
     if (!isUserExist) throw new AppError("User does not exist", 400);
     const token = createTokenFromData({ email }, "5min");
-    const html = `
-    <h1 style="text-align: center;">Reset Password By Clicking The Button Below</h1>
-    <a href=${config.FRONTEND_URL}/reset-password/${token} style="text-align: center;">Click Here<a/>
-    `;
-    await SendEmail({ to: email, html, subject: "Reset Password Link" }); // to,subject,text,html
+    let emailHtml = html.resetPassword({
+        resetPasswordLink: `${config.FRONTEND_URL}/reset-password/${token}`,
+        userName: email,
+        expiresInMinutes: 5,
+    })
+    await sendAuthNotification({ email, html: emailHtml, action: "Reset_Password_Link" }); // to,subject,text,html
 
     res
         .status(200)
