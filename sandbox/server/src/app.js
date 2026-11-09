@@ -17,7 +17,7 @@ app.post("/api/sandbox/start", async (req, res) => {
         await Promise.all([
             createPod(sandboxId),
             createService(sandboxId),
-            setSandboxKey(sandboxId , 45)
+            setSandboxKey(sandboxId )
         ]);
         
         res.status(200).json({

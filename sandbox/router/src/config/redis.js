@@ -8,10 +8,10 @@ redis.on("connect", () => {
 redis.on("error", (err) => {
     console.error("Redis error:", err);
 })
-export async function refreshTTL(sandboxId){
+export async function refreshTTL(sandboxId) {
     const exists = await redis.exists(`sandbox:${sandboxId}`);
     if (exists) {
-        await redis.expire(`sandbox:${sandboxId}`, 45);
+        await redis.expire(`sandbox:${sandboxId}`, 60 * 10);
         console.log(`TTL refreshed for sandbox:${sandboxId}`);
     } else {
         console.log(`Key sandbox:${sandboxId} does not exist`);
