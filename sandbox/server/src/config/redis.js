@@ -2,7 +2,7 @@ import REDIS from "ioredis";
 import { deletePod } from "../kubernetes/pod.js";
 import { deleteService } from "../kubernetes/service.js";
 
-const redis = new REDIS(process.env.REDIS_URL)
+export const redis = new REDIS(process.env.REDIS_URL)
 
 const subscriber = new REDIS(process.env.REDIS_URL)
 
@@ -25,4 +25,4 @@ subscriber.on("message", async (channel, key) => {
     ]);
 });
 
-export default { redis, subscriber };
+export default {  subscriber };
