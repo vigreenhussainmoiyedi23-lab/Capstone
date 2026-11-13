@@ -1,8 +1,9 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useState, useCallback } from "react";
 import { addCodeFile, listAllFiles, setSandboxData } from "../sandbox.slice.js";
-import { createSandboxEnvironment } from "../services/sandbox.api.js";
+import { startSandboxEnvironment } from "../services/sandbox.api.js";
 import { listWorkspaceFiles, readWorkspaceFiles } from "../services/agent.api.js";
+import { useNavigate } from "react-router-dom";
 const getLanguageFromFile = (filename = "") => {
     if (filename.endsWith(".jsx")) return "jsx";
     if (filename.endsWith(".js") || filename.endsWith(".mjs"))
@@ -17,24 +18,25 @@ const getLanguageFromFile = (filename = "") => {
 };
 export const useSandbox = () => {
     const dispatch = useDispatch();
-    const sandbox = useSelector((state) => state.sandbox);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const navigate = useNavigate()
 
-    const createSandbox = useCallback(async () => {
+    const createSandbox = useCallback(async (projectId) => {
         setIsLoading(true);
         setError(null);
         try {
-            const sandboxData = await createSandboxEnvironment();
+            const sandboxData = await startSandboxEnvironment(projectId);
             console.log("Sandbox created successfully:", sandboxData);
 
             const normalized = {
-                sandboxId: sandboxData.id || sandboxData.sandboxId,
+                sandboxId: sandboxData.sandboxId,
                 previewUrl: sandboxData.previewUrl,
                 agentUrl: sandboxData.agentUrl,
             };
 
             dispatch(setSandboxData(normalized));
+            navigate(`/chats/${sandboxData.sandboxId}`)
             return sandboxData;
         } catch (err) {
             console.error("Error creating sandbox:", err);

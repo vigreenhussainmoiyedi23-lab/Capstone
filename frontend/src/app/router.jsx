@@ -1,12 +1,12 @@
 import { createBrowserRouter, Outlet } from "react-router-dom";
 import ChatboxPreview from "../shared/pages/ChatboxPreview.jsx";
-import Login from "../features/auth copy/pages/Login.jsx";
-import Register from "../features/auth copy/pages/Register.jsx";
-import VerifyOtp from "../features/auth copy/pages/VerifyOtp.jsx";
-import GoogleSuccess from "../features/auth copy/pages/GoogleSuccess.jsx";
-import ForgotPassword from "../features/auth copy/pages/ForgotPassword.jsx";
-import ChangePassword from "../features/auth copy/pages/ChangePassword.jsx";
-import ResetPassword from "../features/auth copy/pages/ResetPassword.jsx";
+import Login from "../features/auth/pages/Login.jsx";
+import Register from "../features/auth/pages/Register.jsx";
+import VerifyOtp from "../features/auth/pages/VerifyOtp.jsx";
+import GoogleSuccess from "../features/auth/pages/GoogleSuccess.jsx";
+import ForgotPassword from "../features/auth/pages/ForgotPassword.jsx";
+import ChangePassword from "../features/auth/pages/ChangePassword.jsx";
+import ResetPassword from "../features/auth/pages/ResetPassword.jsx";
 import ProtectedLayout from "../layouts/ProtectedLayout.jsx";
 import CommonLayout from "../layouts/CommonLayout.jsx";
 // 1. Define dummy components for demonstration
