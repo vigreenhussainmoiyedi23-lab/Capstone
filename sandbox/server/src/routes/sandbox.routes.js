@@ -12,7 +12,7 @@ sandboxRouter.post("/start", async (req, res) => {
     const { projectId } = req.body
     try {
         await Promise.all([
-            createPod(sandboxId),
+            createPod(sandboxId, projectId),
             createService(sandboxId),
             setSandboxKey(sandboxId)
         ]);

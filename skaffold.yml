@@ -28,17 +28,16 @@ build:
       context: sandbox/agent
       docker:
         dockerfile: dockerfile.dev
-      sync:
-        infer:
-          - "src/**"
+
+    - image: sync-agent
+      context: sandbox/sync-agent
+      docker:
+        dockerfile: dockerfile.dev
 
     - image: template
       context: sandbox/template
       docker:
         dockerfile: dockerfile
-      sync:
-        infer:
-          - "src/**"
     - image: ai-orchestration
       context: ai-orchestration
       docker:
