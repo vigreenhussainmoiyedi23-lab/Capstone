@@ -1,4 +1,7 @@
-import { createBrowserRouter, Outlet } from "react-router-dom";
+import React from "react";
+import { createBrowserRouter } from "react-router-dom";
+import HomePage from "../shared/pages/HomePage.jsx";
+import Dashboard from "../shared/pages/Dashboard.jsx";
 import ChatboxPreview from "../shared/pages/ChatboxPreview.jsx";
 import Login from "../features/auth/pages/Login.jsx";
 import Register from "../features/auth/pages/Register.jsx";
@@ -9,20 +12,44 @@ import ChangePassword from "../features/auth/pages/ChangePassword.jsx";
 import ResetPassword from "../features/auth/pages/ResetPassword.jsx";
 import ProtectedLayout from "../layouts/ProtectedLayout.jsx";
 import CommonLayout from "../layouts/CommonLayout.jsx";
-// 1. Define dummy components for demonstration
 
-const NotFound = () => <h2>404 - Page Not Found</h2>;
+const NotFound = () => (
+  <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-4 text-center">
+    <h1 className="text-6xl font-bold font-serif text-gold mb-2">404</h1>
+    <h2 className="text-xl font-sans mb-4">Page Not Found</h2>
+    <a
+      href="/"
+      className="px-5 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold hover:bg-gold/20 text-sm transition-all"
+    >
+      Return to Home
+    </a>
+  </div>
+);
 
-// 2. Create the route object array structure
 const routesConfiguration = [
   {
-    path: "/", // Parent route path
-    element: <CommonLayout />, // Shared parent layout component
+    path: "/",
+    element: <CommonLayout />,
     children: [
-      // Nested child routes array
       {
-        path: `/chats/:projectId`, // Matches the parent path exactly ("/")
-        element: <ChatboxPreview />, // make this protectted
+        index: true,
+        element: <HomePage />,
+      },
+      {
+        path: "/dashboard",
+        element: (
+          <ProtectedLayout>
+            <Dashboard />
+          </ProtectedLayout>
+        ),
+      },
+      {
+        path: "/chats/:projectId",
+        element: (
+          <ProtectedLayout>
+            <ChatboxPreview />
+          </ProtectedLayout>
+        ),
       },
       /* --- Auth Routes --- */
       {
@@ -60,10 +87,9 @@ const routesConfiguration = [
     ],
   },
   {
-    path: "*", // Catch-all route for unmatched URLs
+    path: "*",
     element: <NotFound />,
   },
 ];
 
-// 3. Initialize the router object
 export const router = createBrowserRouter(routesConfiguration);

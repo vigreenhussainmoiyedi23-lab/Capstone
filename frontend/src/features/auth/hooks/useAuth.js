@@ -56,7 +56,7 @@ export const useAuth = () => {
         isLoading: false,
         ...toastSettings,
       });
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       if (isERROR(error)) {
         dispatch(authFailure(error?.response?.data.message));

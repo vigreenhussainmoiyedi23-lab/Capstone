@@ -64,7 +64,7 @@ const AuthInitializer = () => {
 
         console.error("Authentication lifecycle error:", error);
 
-        dispatch(authFailure("Session expired"));
+        dispatch(authFailure(""));
 
         clearTimeout(refreshTimer);
       }

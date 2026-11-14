@@ -1,49 +1,87 @@
-import { Lock } from "lucide-react";
+import React from "react";
+import { Lock, ArrowRight } from "lucide-react";
 import Input from "../components/Input.jsx";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../hooks/useAuth.js";
-import { useParams } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import ShowError from "../../../commonComponents/ShowError.jsx";
 import { useSelector as useAppSelector } from "react-redux";
+import BrandHeader from "../components/BrandHeader.jsx";
+import FormHeading from "../components/FormHeading.jsx";
+import Bg from "../components/Bg.jsx";
 
 const ResetPassword = () => {
   const { register, handleSubmit, reset } = useForm();
   const { resetPasswordHandler } = useAuth();
   const { token } = useParams();
+  const navigate = useNavigate();
+  const { error, isLoading } = useAppSelector((state) => state.auth);
+
   const submitHandler = async (data) => {
     try {
       const response = await resetPasswordHandler({
         ...data,
         token: token || "",
       });
-      if (response?.success) reset();
-    } catch (error) {}
+      if (response?.success) {
+        reset();
+        navigate("/login");
+      }
+    } catch (err) { }
   };
-  const error = useAppSelector((state) => state.auth.error);
+
   return (
-    <div className="min-h-screen flex items-center bg-background justify-center px-4 relative overflow-hidden">
-      <form
-        className="flex max-w-110 flex-col gap-4 bg-text w-full rounded-2xl py-15 items-center justify-center"
-        onSubmit={handleSubmit(submitHandler)}
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-[#0a0e1a]">
+      <Bg />
+
+      <div
+        className="relative z-10 w-full max-w-[520px] bg-[#0f1422]/90 border border-[rgba(201,168,76,0.18)] rounded-2xl p-7 md:p-8 backdrop-blur-xl shadow-[0_24px_70px_rgba(0,0,0,0.65)]"
+        style={{
+          boxShadow:
+            "0 0 0 1px rgba(201,168,76,0.12), 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(201,168,76,0.06)",
+        }}
       >
-        <h1 className="text-2xl font-bold text-white mb-1">
-          Enter Your Password
-        </h1>
-        <Input
-          register={register}
-          name="password"
-          type="password"
-          placeholder="Enter your new password"
-          icon={<Lock width={16} />}
+        <BrandHeader />
+
+        <FormHeading
+          title="New Password"
+          subtitle="Please choose a strong, secure password for your Forge AI account."
         />
-        <button
-          type="submit"
-          className="bg-gold-dark text-white py-2 px-4 rounded"
-        >
-          Submit
-        </button>
-        <ShowError error={error || ""} />
-      </form>
+
+        <form onSubmit={handleSubmit(submitHandler)} className="flex flex-col gap-4">
+          <Input
+            register={register}
+            name="password"
+            type="password"
+            placeholder="At least 8 characters"
+            icon={<Lock className="w-4 h-4" />}
+          />
+
+          <ShowError error={error || ""} />
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="mt-2 w-full h-11 rounded-xl font-semibold text-sm tracking-wide text-[#0a0e1a] flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 shadow-md hover:shadow-[0_0_20px_rgba(201,168,76,0.35)] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+            style={{
+              background:
+                "linear-gradient(135deg, #d4a435 0%, #c9a84c 50%, #b8922e 100%)",
+            }}
+          >
+            <span>Update Password</span>
+            <ArrowRight className="w-4 h-4 text-[#0a0e1a]" />
+          </button>
+        </form>
+
+        <div className="mt-6 pt-4 border-t border-[rgba(201,168,76,0.1)] text-center">
+          <Link
+            to="/login"
+            className="text-xs text-text-muted hover:text-gold transition-colors font-sans"
+          >
+            Remember your credentials? Sign In
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
