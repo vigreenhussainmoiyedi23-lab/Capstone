@@ -1,4 +1,4 @@
-import api from "../../../app/axios";
+import api from "../../../app/axios.js";
 
 /**
  * starts a new sandbox pod on the kubernetes cluster. And uses projectId for fetching files from AWS s3 and also projectId is used for syncing the data to aws s3

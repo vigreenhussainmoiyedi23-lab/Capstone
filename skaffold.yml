@@ -52,6 +52,13 @@ build:
       sync:
         infer:
           - "src/**"
+    - image: frontend
+      context: frontend
+      docker:
+        dockerfile: dockerfile
+      sync:
+        infer:
+          - "src/**"
     - image: notification
       context: notification
       docker:
@@ -68,6 +75,8 @@ manifests:
     - k8s/sandbox-service.yml
     - k8s/router-deployment.yml
     - k8s/router-service.yml
+    - k8s/frontend-deployment.yml
+    - k8s/frontend-service.yml
     - k8s/ai-deployment.yml
     - k8s/ai-service.yml
     - k8s/ingress.yml
