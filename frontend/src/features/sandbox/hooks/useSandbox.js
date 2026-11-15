@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useState, useCallback } from "react";
-import { addCodeFile, listAllFiles, setSandboxData } from "../sandbox.slice.js";
-import { startSandboxEnvironment } from "../services/sandbox.api.js";
+import { addCodeFile, listAllFiles, setSandboxData, resetSandboxSlice, setProjects, addProject } from "../sandbox.slice.js";
+import { createNewProject, GetAllProjects, startSandboxEnvironment } from "../services/sandbox.api.js";
 import { listWorkspaceFiles, readWorkspaceFiles } from "../services/agent.api.js";
 import { useNavigate } from "react-router-dom";
 const getLanguageFromFile = (filename = "") => {
@@ -82,11 +82,52 @@ export const useSandbox = () => {
         }
     }, [])
 
+    const createProject = useCallback(async ({ title = "Untitled Project" }) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await createNewProject({ title });
+            console.log("Project created successfully:", res);
+            const sandbox = await startSandboxEnvironment(res.project._id)
+            console.log("Sandbox created successfully:", sandbox);
+
+            dispatch(resetSandboxSlice())
+            dispatch(addProject(res.project))
+            console.log("Project added successfully");
+            navigate("/chats/" + sandbox.sandboxId)
+        } catch (err) {
+            console.error("Error creating project:", err);
+            const errorMessage = err?.response?.data?.message || err?.message || "Failed to create project";
+            setError(errorMessage);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [dispatch]);
+
+    const getUserAllProjects = useCallback(async () => {
+        try {
+            const res = await GetAllProjects()
+            dispatch(setProjects(res.projects))
+        } catch (err) {
+            console.error("Error fetching all projects:", err);
+            const errorMessage = err?.response?.data?.message || err?.message || "Failed to create project";
+            setError(errorMessage);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [dispatch])
+
+
+
     return {
         createSandbox,
         isLoading,
         error,
         fetchFiles,
-        getFileContent
+        getFileContent,
+        createProject,
+        getUserAllProjects
     };
 };

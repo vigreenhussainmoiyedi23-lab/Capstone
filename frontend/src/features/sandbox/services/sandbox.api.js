@@ -35,11 +35,42 @@ export const startSandboxEnvironment = async (projectId) => {
     }
 }
  */
-export const createNewProject = async (title) => {
+export const createNewProject = async (data) => {
     try {
-        const response= await api.post("/api/sandbox/project")
+        const response = await api.post("/api/sandbox/project", data)
+        return response.data
     } catch (error) {
         console.error("Error creating a project:", error);
+        throw error;
+    }
+}
+/**
+ * @description all the projects of the logged in user gets
+ * @response {
+    "status": "ok",
+    "message": "Projects fetched successfully",
+    "projects": [
+        {
+            "_id": "6af456c60eada9afc068b283",
+            "title": "New Projecyt",
+            "user": "6af07ba2feba81df2dd473f1",
+            "__v": 0
+        },
+        {
+            "_id": "6af456dd0eada9afc068b284",
+            "title": "New Project 1 2 3",
+            "user": "6af07ba2feba81df2dd473f1",
+            "__v": 0
+        },
+    ]
+}
+ */
+export const GetAllProjects = async () => {
+    try {
+        const response = await api.get("/api/sandbox/projects")
+        return response.data
+    } catch (error) {
+        console.error("Error fetching all projects:", error);
         throw error;
     }
 }

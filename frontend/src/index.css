@@ -65,15 +65,18 @@
   --font-serif:   'Playfair Display', Georgia, serif;
   --font-mono:    'JetBrains Mono', 'Consolas', monospace;
 
-  /* ── Spacing Scale ── */
-  --spacing-2xs: 0.25rem;
-  --spacing-xs:  0.5rem;
-  --spacing-sm:  0.75rem;
-  --spacing-md:  1rem;
-  --spacing-lg:  1.5rem;
-  --spacing-xl:  2rem;
-  --spacing-2xl: 3rem;
-  --spacing-3xl: 4rem;
+  /* ── Container Widths ── */
+  --container-xs:  20rem;
+  --container-sm:  24rem;
+  --container-md:  28rem;
+  --container-lg:  32rem;
+  --container-xl:  36rem;
+  --container-2xl: 42rem;
+  --container-3xl: 48rem;
+  --container-4xl: 56rem;
+  --container-5xl: 64rem;
+  --container-6xl: 72rem;
+  --container-7xl: 80rem;
 
   /* ── Border Radius ── */
   --radius-sm:  0.25rem;

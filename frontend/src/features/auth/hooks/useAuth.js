@@ -23,20 +23,7 @@ import {
 import { toastSettings } from "../../../utils/ToastSettings.js";
 import { toast } from "react-toastify";
 
-function isERROR(error) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof error.response === "object" &&
-    error.response !== null &&
-    "data" in error.response &&
-    typeof error.response.data === "object" &&
-    error.response.data !== null &&
-    "message" in error.response.data &&
-    typeof error.response.data.message === "string"
-  );
-}
+
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -58,15 +45,15 @@ export const useAuth = () => {
       });
       navigate("/dashboard");
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message,
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+      dispatch(authFailure(error?.response?.data.message));
+
+      toast.update(id, {
+        render: error?.response?.data.message,
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
+
     }
   };
 
@@ -86,16 +73,16 @@ export const useAuth = () => {
       });
       navigate("/");
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message,
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+
+      dispatch(authFailure(error?.response?.data.message));
+      toast.update(id, {
+        render: error?.response?.data.message,
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
     }
+
   };
   const RegisterHandler = async (data) => {
     dispatch(authStart());
@@ -111,16 +98,16 @@ export const useAuth = () => {
       });
       navigate("/verifyOtp");
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message || "",
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+
+      dispatch(authFailure(error?.response?.data.message));
+      toast.update(id, {
+        render: error?.response?.data.message || "",
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
     }
+
   };
   const LogoutHandler = async () => {
     dispatch(authStart());
@@ -135,16 +122,16 @@ export const useAuth = () => {
       });
       navigate("/login");
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message || "",
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+
+      dispatch(authFailure(error?.response?.data.message));
+      toast.update(id, {
+        render: error?.response?.data.message || "",
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
     }
+
   };
   const GetMeHandler = async () => {
     dispatch(authStart());
@@ -200,16 +187,16 @@ export const useAuth = () => {
         ...toastSettings,
       });
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message || "",
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+
+      dispatch(authFailure(error?.response?.data.message));
+      toast.update(id, {
+        render: error?.response?.data.message || "",
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
     }
+
   };
   const resetPasswordHandler = async (data) => {
     dispatch(authStart());
@@ -224,16 +211,16 @@ export const useAuth = () => {
       });
       return response;
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message || "",
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+
+      dispatch(authFailure(error?.response?.data.message));
+      toast.update(id, {
+        render: error?.response?.data.message || "",
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
     }
+
   };
   const changePasswordHandler = async (data) => {
     dispatch(authStart());
@@ -248,16 +235,16 @@ export const useAuth = () => {
       });
       return response;
     } catch (error) {
-      if (isERROR(error)) {
-        dispatch(authFailure(error?.response?.data.message));
-        toast.update(id, {
-          render: error?.response?.data.message || "",
-          type: "error",
-          isLoading: false,
-          ...toastSettings,
-        });
-      }
+
+      dispatch(authFailure(error?.response?.data.message));
+      toast.update(id, {
+        render: error?.response?.data.message || "",
+        type: "error",
+        isLoading: false,
+        ...toastSettings,
+      });
     }
+
   };
   return {
     loginHandler,
@@ -270,6 +257,6 @@ export const useAuth = () => {
     forgotHandler,
     resetPasswordHandler,
     changePasswordHandler,
-    
+
   };
 };

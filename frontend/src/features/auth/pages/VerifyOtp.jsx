@@ -108,7 +108,7 @@ const VerifyOtp = () => {
       <Bg />
 
       <div
-        className="relative z-10 w-full max-w-[520px] bg-[#0f1422]/90 border border-[rgba(201,168,76,0.18)] rounded-2xl p-7 md:p-8 backdrop-blur-xl shadow-[0_24px_70px_rgba(0,0,0,0.65)] text-center"
+        className="relative z-10 w-full max-w-130 bg-[#0f1422]/90 border border-[rgba(201,168,76,0.18)] rounded-2xl p-7 md:p-8 backdrop-blur-xl shadow-[0_24px_70px_rgba(0,0,0,0.65)] text-center"
         style={{
           boxShadow:
             "0 0 0 1px rgba(201,168,76,0.12), 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(201,168,76,0.06)",

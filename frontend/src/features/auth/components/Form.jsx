@@ -8,9 +8,7 @@ import { useEffect } from "react";
 const Form = ({ register, handleSubmit, submitHandler, isRegister }) => {
   const isLoading = useAppSelector((state) => state.auth.isLoading);
   const error = useAppSelector((state) => state.auth.error);
-  useEffect(() => {
-    console.log(isLoading , "loading ");
-  }, [isLoading]);
+
   return (
     <form
       onSubmit={handleSubmit(submitHandler)}

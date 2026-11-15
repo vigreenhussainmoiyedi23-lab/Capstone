@@ -25,7 +25,8 @@ const PublicNavbar = () => {
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
           style={{
-            background: "linear-gradient(135deg, #d4a435 0%, #c9a84c 50%, #9a7620 100%)",
+            background:
+              "linear-gradient(135deg, #d4a435 0%, #c9a84c 50%, #9a7620 100%)",
             boxShadow: "0 0 14px rgba(201, 168, 76, 0.35)",
           }}
         >
@@ -43,25 +44,26 @@ const PublicNavbar = () => {
           </svg>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="font-serif font-bold text-lg tracking-tight text-white">
-            Forge
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold px-1 py-0.5 rounded bg-gold/10 border border-gold/25">
-            AI Studio
-          </span>
+          <Link
+            to="/"
+            className={`transition-colors hover:text-gold ${
+              location.pathname === "/"
+                ? "text-gold font-medium"
+                : "text-text-secondary"
+            }`}
+          >
+            <span className="font-serif font-bold text-lg tracking-tight text-white">
+              Forge
+            </span>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold px-1 py-0.5 rounded bg-gold/10 border border-gold/25">
+              AI Studio
+            </span>
+          </Link>
         </div>
       </Link>
 
       {/* Center Links (Visible on desktop) */}
       <nav className="hidden md:flex items-center gap-6 text-sm font-sans">
-        <Link
-          to="/"
-          className={`transition-colors hover:text-gold ${
-            location.pathname === "/" ? "text-gold font-medium" : "text-text-secondary"
-          }`}
-        >
-          Home
-        </Link>
         {isAuthenticated && user && (
           <Link
             to="/dashboard"
@@ -88,7 +90,9 @@ const PublicNavbar = () => {
               <div className="w-5 h-5 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-bold text-gold uppercase">
                 {(user.username || user.email || "U")[0]}
               </div>
-              <span className="max-w-[120px] truncate">{user.username || user.email}</span>
+              <span className="max-w-[120px] truncate">
+                {user.username || user.email}
+              </span>
             </Link>
 
             <button
@@ -116,7 +120,8 @@ const PublicNavbar = () => {
               to="/register"
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[#0a0e1a] shadow-sm hover:shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all active:scale-[0.98]"
               style={{
-                background: "linear-gradient(135deg, #d4a435 0%, #c9a84c 50%, #b8922e 100%)",
+                background:
+                  "linear-gradient(135deg, #d4a435 0%, #c9a84c 50%, #b8922e 100%)",
               }}
             >
               Get Started
@@ -129,4 +134,3 @@ const PublicNavbar = () => {
 };
 
 export default PublicNavbar;
-

@@ -1,15 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+
+const initialState = {
+    sandboxId: null,
+    previewUrl: null,
+    agentUrl: null,
+    terminalMessages: [],
+    codeFiles: {},
+    allFiles: [],
+    projects: [] // users all projects: {_id,title,user}
+}
+
+
 const sandboxSlice = createSlice({
     name: "sandbox",
-    initialState: {
-        sandboxId: null,
-        previewUrl: null,
-        agentUrl: null,
-        terminalMessages: [],
-        codeFiles: {},
-        allFiles: []
-    },
+    initialState,
     reducers: {
         setSandboxData: (state, action) => {
             state.sandboxId = action.payload.sandboxId;
@@ -39,9 +44,38 @@ const sandboxSlice = createSlice({
         listAllFiles: (state, action) => {
             const files = action.payload;
             state.allFiles = files;
+        },
+        resetSandboxSlice: (state) => {
+            console.log("resetting sandbox slice...");
+
+            const projects = state.projects;
+
+            console.log("sandbox slice reset");
+
+            return {
+                ...initialState,
+                projects
+            };
+        },
+        addProject: (state, action) => {
+            state.projects = [...state.projects, action.payload]
+        },
+        setProjects: (state, action) => {
+            state.projects = action.payload
         }
     },
 });
 
-export const { setSandboxData, addTerminalMessage, clearTerminalMessages, addCodeFile, updateCodeFile, removeCodeFile, listAllFiles } = sandboxSlice.actions;
+export const {
+    setSandboxData,
+    addTerminalMessage,
+    clearTerminalMessages,
+    addCodeFile,
+    updateCodeFile,
+    removeCodeFile,
+    listAllFiles,
+    resetSandboxSlice,
+    addProject,
+    setProjects
+} = sandboxSlice.actions;
 export const sandboxReducer = sandboxSlice.reducer;
