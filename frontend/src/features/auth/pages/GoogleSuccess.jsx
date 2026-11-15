@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch as useAppDispatch } from "react-redux";
-import { setAccessToken } from "../authSlice";
+import { setAccessToken } from "../authSlice.js";
 import { Loader2 } from "lucide-react";
-import BrandHeader from "../components/BrandHeader";
-import Bg from "../components/Bg";
+import BrandHeader from "../components/BrandHeader.jsx";
+import Bg from "../components/Bg.jsx";
 
 const GoogleSuccess = () => {
   const [params] = useSearchParams();

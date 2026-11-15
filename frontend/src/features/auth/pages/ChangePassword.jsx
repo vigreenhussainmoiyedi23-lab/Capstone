@@ -1,13 +1,13 @@
 import React from "react";
 import { Lock, ArrowRight } from "lucide-react";
-import Input from "../components/Input";
+import Input from "../components/Input.jsx";
 import { useForm } from "react-hook-form";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth.js";
 import { useSelector as useAppSelector } from "react-redux";
-import ShowError from "../../../commonComponents/ShowError";
-import BrandHeader from "../components/BrandHeader";
-import FormHeading from "../components/FormHeading";
-import Bg from "../components/Bg";
+import ShowError from "../../../commonComponents/ShowError.jsx";
+import BrandHeader from "../components/BrandHeader.jsx";
+import FormHeading from "../components/FormHeading.jsx";
+import Bg from "../components/Bg.jsx";
 import { Link } from "react-router-dom";
 
 const ChangePassword = () => {

@@ -1,6 +1,6 @@
 import { useSelector as useAppSelector } from "react-redux";
-import ShowError from "../../../commonComponents/ShowError";
-import Input from "./Input";
+import ShowError from "../../../commonComponents/ShowError.jsx";
+import Input from "./Input.jsx";
 import { Lock, Mail, User, ArrowRight, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";

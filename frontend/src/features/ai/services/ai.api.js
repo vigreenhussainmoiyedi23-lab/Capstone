@@ -1,4 +1,4 @@
-import api from "../../../app/axios";
+import api from "../../../app/axios.js";
 
 /**
  * Invoke AI agent backend with Server-Sent Events (SSE) streaming.

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth.js";
 import { ShieldCheck, RotateCcw, Loader2 } from "lucide-react";
-import BrandHeader from "../components/BrandHeader";
-import FormHeading from "../components/FormHeading";
-import Bg from "../components/Bg";
+import BrandHeader from "../components/BrandHeader.jsx";
+import FormHeading from "../components/FormHeading.jsx";
+import Bg from "../components/Bg.jsx";
 import { useNavigate } from "react-router-dom";
 
 const VerifyOtp = () => {

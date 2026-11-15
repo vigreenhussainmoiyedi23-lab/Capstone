@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useAuth } from "../../features/auth/hooks/useAuth";
+import { useAuth } from "../../features/auth/hooks/useAuth.js";
 import { LogOut, LayoutDashboard, Sparkles, Terminal } from "lucide-react";
 
 const PublicNavbar = () => {

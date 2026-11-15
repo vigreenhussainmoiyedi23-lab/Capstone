@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Loader2 } from "lucide-react";
-import { useSandbox } from "../../features/sandbox/hooks/useSandbox";
-import PublicNavbar from "../components/PublicNavbar";
-import DashboardHeader from "../components/dashboard/DashboardHeader";
-import ProjectCard from "../components/dashboard/ProjectCard";
-import EmptyProjectsState from "../components/dashboard/EmptyProjectsState";
-import NewProjectModal from "../components/dashboard/NewProjectModal";
+import { useSandbox } from "../../features/sandbox/hooks/useSandbox.js";
+import PublicNavbar from "../components/PublicNavbar.jsx";
+import DashboardHeader from "../components/dashboard/DashboardHeader.jsx";
+import ProjectCard from "../components/dashboard/ProjectCard.jsx";
+import EmptyProjectsState from "../components/dashboard/EmptyProjectsState.jsx";
+import NewProjectModal from "../components/dashboard/NewProjectModal.jsx";
 
 const Dashboard = () => {
   const { user } = useSelector((state) => state.auth);

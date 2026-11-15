@@ -1,13 +1,13 @@
 
 import { useForm } from "react-hook-form";
-import { useAuth } from "../hooks/useAuth";
-import BrandHeader from "../components/BrandHeader";
-import Form from "../components/Form";
-import FormHeading from "../components/FormHeading";
-import DividerOr from "../components/DividerOr";
-import Redirect from "../components/Redirect";
-import ContinueWithGoogle from "../components/ContinueWithGoogle";
-import Bg from "../components/Bg";
+import { useAuth } from "../hooks/useAuth.js";
+import BrandHeader from "../components/BrandHeader.jsx";
+import Form from "../components/Form.jsx";
+import FormHeading from "../components/FormHeading.jsx";
+import DividerOr from "../components/DividerOr.jsx";
+import Redirect from "../components/Redirect.jsx";
+import ContinueWithGoogle from "../components/ContinueWithGoogle.jsx";
+import Bg from "../components/Bg.jsx";
 
 export default function Login() {
   const { register, handleSubmit } = useForm();

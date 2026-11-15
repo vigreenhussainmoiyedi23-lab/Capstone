@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { getSocket } from "../sockets/socket";
+import { getSocket } from "../sockets/socket.js";
 import { useDispatch } from "react-redux";
 import { addTerminalMessage } from "../../features/sandbox/sandbox.slice.js";
 export const useProjectSocket = (projectId) => {

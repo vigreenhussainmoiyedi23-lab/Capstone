@@ -1,23 +1,18 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useSandbox } from "../../features/sandbox/hooks/useSandbox";
-import PublicNavbar from "../components/PublicNavbar";
+import { useSandbox } from "../../features/sandbox/hooks/useSandbox.js";
+import PublicNavbar from "../components/PublicNavbar.jsx";
 import {
   Sparkles,
   ArrowRight,
   Terminal,
   Cpu,
-  Layers,
   Code2,
-  ShieldCheck,
   Zap,
-  Play,
   Loader2,
-  CheckCircle2,
-  ExternalLink,
 } from "lucide-react";
-
+1
 const HomePage = () => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { createSandbox, isLoading } = useSandbox();

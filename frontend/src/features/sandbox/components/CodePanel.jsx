@@ -14,12 +14,8 @@ import {
 } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { useSelector } from "react-redux";
-import {
-  listWorkspaceFiles,
-  readWorkspaceFiles,
-} from "../services/agent.api";
 import { useParams } from "react-router-dom";
-import { useSandbox } from "../hooks/useSandbox";
+import { useSandbox } from "../hooks/useSandbox.js";
 
 
 

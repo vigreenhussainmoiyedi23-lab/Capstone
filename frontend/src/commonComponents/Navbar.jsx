@@ -10,10 +10,8 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "../app/redux/hook";
-import { Logo } from "./Logo";
-import CartSideMenu from "../features/cart/components/CartSideMenu";
-import { GetProductsAPI } from "../features/products/service/api.service";
+import { useSelector as useAppSelector } from "react-redux";
+import { Logo } from "./Logo.jsx";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

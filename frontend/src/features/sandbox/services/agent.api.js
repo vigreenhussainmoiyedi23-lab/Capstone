@@ -1,4 +1,4 @@
-import api from "../../../app/axios";
+import api from "../../../app/axios.js";
 
 
 export const getAPIBaseUrl = (projectId) => {

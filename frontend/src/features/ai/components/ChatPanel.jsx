@@ -12,9 +12,9 @@ import {
   Bot,
   User,
 } from "lucide-react";
-import { useAI } from "../hooks/useAI";
-import ThinkingProcess from "./ThinkingProcess";
-import MarkdownRenderer from "./MarkdownRenderer";
+import { useAI } from "../hooks/useAi.js";
+import ThinkingProcess from "./ThinkingProcess.jsx";
+import MarkdownRenderer from "./MarkdownRenderer.jsx";
 
 /* ── Quick prompt suggestions ── */
 const SUGGESTION_CHIPS = [

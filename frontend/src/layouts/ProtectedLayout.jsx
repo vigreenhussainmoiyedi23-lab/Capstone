@@ -1,6 +1,6 @@
 import React from "react";
 import { useSelector as useAppSelector } from "react-redux";
-import Unauthorzed from "../commonComponents/Unauthorzed";
+import Unauthorzed from "../commonComponents/Unauthorzed.jsx";
 import { Loader2 } from "lucide-react";
 
 const ProtectedLayout = ({ children }) => {

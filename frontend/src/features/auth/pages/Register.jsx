@@ -1,15 +1,15 @@
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth.js";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import BrandHeader from "../components/BrandHeader";
-import Form from "../components/Form";
-import FormHeading from "../components/FormHeading";
-import DividerOr from "../components/DividerOr";
-import Redirect from "../components/Redirect";
-import ContinueWithGoogle from "../components/ContinueWithGoogle";
-import Bg from "../components/Bg";
+import BrandHeader from "../components/BrandHeader.jsx";
+import Form from "../components/Form.jsx";
+import FormHeading from "../components/FormHeading.jsx";
+import DividerOr from "../components/DividerOr.jsx";
+import Redirect from "../components/Redirect.jsx";
+import ContinueWithGoogle from "../components/ContinueWithGoogle.jsx";
+import Bg from "../components/Bg.jsx";
 
 export default function Register() {
   const { register, handleSubmit } = useForm();

@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "react-router-dom";
-import ChatPanel from "../../features/ai/components/ChatPanel";
-import RightPanel from "../../features/sandbox/components/RightPanel";
-import { useProjectSocket } from "../sockets/useProjectSocket";
+import ChatPanel from "../../features/ai/components/ChatPanel.jsx";
+import RightPanel from "../../features/sandbox/components/RightPanel.jsx";
+import { useProjectSocket } from "../sockets/useProjectSocket.js";
 import { useDispatch } from "react-redux";
-import { useSandbox } from "../../features/sandbox/hooks/useSandbox";
+import { useSandbox } from "../../features/sandbox/hooks/useSandbox.js";
 /**
  * App — Root layout for Forge AI Studio
  *
