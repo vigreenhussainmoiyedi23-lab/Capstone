@@ -1,0 +1,61 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+
+build:
+  tagPolicy:
+    sha256: {}
+
+  platforms:
+    - linux/amd64 # EKS t3.medium nodes are x86_64 — Mac M1/M2/M3 must cross-build
+
+  artifacts:
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/ai-orchestration
+      context: ai-orchestration
+      docker:
+        dockerfile: dockerfile
+
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/auth
+      context: auth
+      docker:
+        dockerfile: dockerfile
+
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/notification
+      context: notification
+      docker:
+        dockerfile: dockerfile
+
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/agent
+      context: sandbox/agent
+      docker:
+        dockerfile: dockerfile
+
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/router
+      context: sandbox/router
+      docker:
+        dockerfile: dockerfile
+
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/sandbox
+      context: sandbox/server
+      docker:
+        dockerfile: dockerfile
+
+    - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/template
+      context: sandbox/template
+      docker:
+        dockerfile: dockerfile
+
+manifests:
+  rawYaml:
+    - k8s/ai-deployment.yml
+    - k8s/ai-service.yml
+    - k8s/auth-deployment.yml
+    - k8s/auth-service.yml
+    - k8s/sandbox-deployment.yml
+    - k8s/sandbox-service.yml
+    - k8s/router-deployment.yml
+    - k8s/router-service.yml
+    - k8s/notification-deployment.yml
+    - k8s/notification-service.yml
+    - k8s/ingress.yml
+    - k8s/rbac*.yml
+    - k8s/secrets*.yml

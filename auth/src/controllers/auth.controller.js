@@ -199,7 +199,7 @@ export const googleController = asyncHandler(async (req, res) => {
     sendSecureCookie(res, "refreshToken", refreshToken, 24 * 60 * 60 * 1000);
 
     res.redirect(
-        `${config.FRONTEND_URL}/auth/google/success?accessToken=${accessToken}`,
+        `/auth/google/success?accessToken=${accessToken}`,
     );
 });
 
