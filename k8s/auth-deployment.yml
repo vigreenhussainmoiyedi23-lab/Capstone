@@ -15,8 +15,8 @@ spec:
         app: auth
     spec:
       containers:
-        - image: auth:latest
-          imagePullPolicy: IfNotPresent
+        - image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/auth
+          imagePullPolicy: Always
           name: auth-container
           resources:
             limits:

@@ -12,3 +12,8 @@ To START THE KUBERNETES CLUSTER TO WORK
   `npm run dev`
 - GO TO THIS URL
   "http://localhost:5173"
+
+DEPLOYED ON AWS
+
+to restart the cluster meaning nodes 0 --- 1 | 2
+aws eks describe-cluster --name express-cluster --region ap-south-1 --query "cluster.status" --output text

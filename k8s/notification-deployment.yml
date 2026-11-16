@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: notification-container
-          image: notification:latest
-          imagePullPolicy: IfNotPresent
+          image: 042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/notification
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
               name: http

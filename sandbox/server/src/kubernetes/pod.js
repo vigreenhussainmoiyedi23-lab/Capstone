@@ -19,7 +19,7 @@ export async function createPod(sandboxId, projectId) {
             initContainers: [
                 {
                     name: "init-container",
-                    image: "template",
+                    image: "042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/template",
                     imagePullPolicy: "IfNotPresent",
                     command: ["sh", "-c", "cp -r /workspace/. /seed/"],
                     volumeMounts: [
@@ -32,9 +32,9 @@ export async function createPod(sandboxId, projectId) {
             ],
             containers: [
                 {
-                    image: "template",
+                    image: "042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/template",
                     name: "sandbox-container",
-                    imagePullPolicy: "IfNotPresent",
+                    imagePullPolicy: "Always",
                     ports: [
                         {
                             containerPort: 5173,
@@ -55,9 +55,9 @@ export async function createPod(sandboxId, projectId) {
 
                 },
                 {
-                    image: "agent:latest",
+                    image: "042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/agent",
                     name: "agent-container",
-                    imagePullPolicy: "IfNotPresent",
+                    imagePullPolicy: "Always",
                     ports: [
                         {
                             containerPort: 3000,
@@ -77,8 +77,8 @@ export async function createPod(sandboxId, projectId) {
                     ]
                 },
                 {
-                    image: "sync-agent",
-                    imagePullPolicy: "IfNotPresent",
+                    image: "042215120799.dkr.ecr.ap-southeast-1.amazonaws.com/sync-agent",
+                    imagePullPolicy: "Always",
                     name: "agent-sync-container",
                     ports: [
                         {

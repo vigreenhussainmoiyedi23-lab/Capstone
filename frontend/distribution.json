@@ -1,0 +1,36 @@
+{
+  "CallerReference": "forgeai-frontend-1",
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "S3-forgeai-frontend",
+        "DomainName": "forgeai-frontend.s3-website-ap-southeast-1.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only"
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "S3-forgeai-frontend",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+    "Compress": true
+  },
+  "Aliases": {
+    "Quantity": 1,
+    "Items": ["www.hbglobalventures.in"]
+  },
+  "ViewerCertificate": {
+    "ACMCertificateArn": "arn:aws:acm:us-east-1:042215120799:certificate/58575932-c383-4673-8a20-87aedf949ea6",
+    "SSLSupportMethod": "sni-only",
+    "MinimumProtocolVersion": "TLSv1.2_2021"
+  },
+  "Enabled": true,
+  "HttpVersion": "http2",
+  "DefaultRootObject": "index.html",
+  "Comment": "forgeai frontend"
+}

@@ -63,7 +63,7 @@ spec:
     #             name: frontend-service
     #             port:
     #               number: 80
-    - host: "*.preview.localhost"
+    - host: "*.preview.hbglobalventures.in"
       http:
         paths:
           - pathType: Prefix
@@ -73,7 +73,7 @@ spec:
                 name: router-service
                 port:
                   number: 80
-    - host: "*.agent.localhost"
+    - host: "*.agent.hbglobalventures.in"
       http:
         paths:
           - pathType: Prefix
